@@ -10,7 +10,6 @@ TWITCH_LIST_STREAMS = 'https://api.twitch.tv/kraken/streams'
 TWITCH_FEATURED_STREAMS = 'https://api.twitch.tv/kraken/streams/featured'
 TWITCH_TOP_GAMES = 'https://api.twitch.tv/kraken/games/top'
 TWITCH_SEARCH_STREAMS = 'https://api.twitch.tv/kraken/search/streams'
-TWITCH_LIVE_PLAYER = 'http://www-cdn.jtvnw.net/widgets/live_embed_player.swf?auto_play=true'
 
 PAGE_LIMIT = 100
 NAME = 'Twitch.tv'
@@ -47,12 +46,11 @@ def FeaturedStreamsMenu():
 	featured = JSON.ObjectFromURL(url)
 
 	for stream in featured['featured']:
-		subtitle = "%s\n%s Viewers" % (stream['stream']['game'], stream['stream']['viewers'])
 		summary = String.StripTags(stream['text'])
-		stream_url = "%s&channel=%s" % (TWITCH_LIVE_PLAYER, stream['stream']['channel']['name'])
+		subtitle = "%s\n%s Viewers" % (stream['stream']['game'], stream['stream']['viewers'])
 
 		oc.add(VideoClipObject(
-			url = stream_url,
+			url = stream['stream']['channel']['url'],
 			title = stream['stream']['channel']['display_name'],
 			summary = '%s\n\n%s' % (subtitle, summary),
 			thumb = stream['stream']['preview']
@@ -93,10 +91,9 @@ def ChannelMenu(game):
 
 	for stream in streams['streams']:
 		subtitle = " %s Viewers" % stream['viewers']
-		stream_url = "%s&channel=%s" % (TWITCH_LIVE_PLAYER, stream['channel']['name'])
 
 		oc.add(VideoClipObject(
-			url = stream_url,
+			url = stream['channel']['url'],
 			title = stream['channel']['display_name'],
 			summary = '%s\n\n%s' % (subtitle, stream['channel']['status']),
 			thumb = stream['channel']['logo']
@@ -111,11 +108,10 @@ def SearchResults(query=''):
 	results = JSON.ObjectFromURL("%s?query=%s&limit=%s" % (TWITCH_SEARCH_STREAMS, String.Quote(query, usePlus=True), PAGE_LIMIT))
 
 	for stream in results['streams']:
-		stream_url = "%s&channel=%s" % (TWITCH_LIVE_PLAYER, stream['channel']['name'])
 		subtitle = "%s\n%s Viewers" % (stream['game'], stream['viewers'])
 
 		oc.add(VideoClipObject(
-			url = stream_url,
+			url = stream['channel']['url'],
 			title = stream['channel']['display_name'],
 			summary = '%s\n\n%s' % (subtitle, stream['channel']['status']),
 			thumb = stream['channel']['logo']
