@@ -41,7 +41,7 @@ def MainMenu():
 @route('/video/twitch/featured')
 def FeaturedStreamsMenu():
 
-	oc = ObjectContainer(title2="Featured Streams")
+	oc = ObjectContainer(title2="Featured Streams", no_cache=True)
 	url = "%s?limit=%s" % (TWITCH_FEATURED_STREAMS, PAGE_LIMIT)
 	featured = JSON.ObjectFromURL(url)
 
@@ -66,7 +66,7 @@ def FeaturedStreamsMenu():
 @route('/video/twitch/games', page=int)
 def GamesMenu(page=0):
 
-	oc = ObjectContainer(title2="Top Games")
+	oc = ObjectContainer(title2="Top Games", no_cache=True)
 	url = "%s?limit=%s&offset=%s" % (TWITCH_TOP_GAMES, PAGE_LIMIT, page*PAGE_LIMIT)
 	games = JSON.ObjectFromURL(url)
 
@@ -92,7 +92,7 @@ def GamesMenu(page=0):
 @route('/video/twitch/channel')
 def ChannelMenu(game):
 
-	oc = ObjectContainer(title2=game)
+	oc = ObjectContainer(title2=game, no_cache=True)
 	url = "%s?game=%s&limit=%s" % (TWITCH_LIST_STREAMS, String.Quote(game, usePlus=True), PAGE_LIMIT)
 	streams = JSON.ObjectFromURL(url)
 
@@ -111,7 +111,7 @@ def ChannelMenu(game):
 ####################################################################################################
 def SearchResults(query=''):
 
-	oc = ObjectContainer()
+	oc = ObjectContainer(no_cache=True)
 	results = JSON.ObjectFromURL("%s?query=%s&limit=%s" % (TWITCH_SEARCH_STREAMS, String.Quote(query, usePlus=True), PAGE_LIMIT))
 
 	for stream in results['streams']:
