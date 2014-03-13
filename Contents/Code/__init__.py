@@ -12,14 +12,14 @@ TWITCH_LIST_STREAMS = 'https://api.twitch.tv/kraken/streams'
 TWITCH_SEARCH_STREAMS = 'https://api.twitch.tv/kraken/search/streams'
 
 PAGE_LIMIT = 100
-NAME = 'Twitch.tv'
+NAME = 'Twitch'
 
 ####################################################################################################
 def Start():
 
 	ObjectContainer.title1 = NAME
-	HTTP.Headers['User-Agent'] = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:21.0) Gecko/20100101 Firefox/21.0'
-	HTTP.CacheTime = 600
+	HTTP.Headers['User-Agent'] = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.117 Safari/537.36'
+	HTTP.CacheTime = 300
 
 ####################################################################################################
 @handler('/video/twitch', NAME)
