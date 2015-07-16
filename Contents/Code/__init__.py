@@ -16,9 +16,8 @@ TWITCH_SEARCH_STREAMS   = TWITCH_API_BASE + '/search/streams'
 TWITCH_FOLLOWED_STREAMS = TWITCH_API_BASE + '/users/{0}/follows/channels'
 TWITCH_CHANNEL          = TWITCH_API_BASE + '/channels/{0}'
 TWITCH_CHANNEL_VODS     = TWITCH_API_BASE + '/channels/{0}/videos'
-TWITCH_VOD              = TWITCH_API_BASE + '/videos/{0}'
 
-PAGE_LIMIT = 100
+PAGE_LIMIT = 20
 NAME = 'Twitch'
 
 ####################################################################################################
@@ -36,32 +35,31 @@ def MainMenu():
 	oc.add(DirectoryObject(
                 key   = Callback(FeaturedStreamsMenu),
                 title = L('featured_streams')
-                )
-        )
+        ))
+
 	oc.add(DirectoryObject(
                 key     = Callback(ListGames),
                 title   = L('games'),
                 summary = L('browse_summary')
-                )
-        )
+        ))
+
 	oc.add(InputDirectoryObject(
                 key     = Callback(SearchResults),
                 title   = L('search'),
                 prompt  = L('search_prompt'),
                 summary = L('search_prompt')
-                )
-        )
+        ))
+
         oc.add(DirectoryObject(
                 key   = Callback(FollowedStreamsMenu),
                 title = L('followed_streams')
-                )
-        )
+        ))
+
         oc.add(PrefsObject(
                 title   = L('Preferences'),
                 tagline = L('Preferences'),
                 summary = L('Preferences'),
-                )
-        )
+        ))
 
 	return oc
 
@@ -79,13 +77,11 @@ def FollowedStreamsMenu():
         following = JSON.ObjectFromURL(url)
 
         for channel in following['follows']:
-                channel_name = channel['channel']['name']
-                oc.add(DirectoryObject(
-                        key   = Callback(ChannelMenu, channel=channel_name),
+                oc.add(PopupDirectoryObject(
+                        key   = Callback(ChannelMenu, channel=channel['channel']['name']),
                         title = channel['channel']['display_name'],
                         thumb = Resource.ContentsOfURLWithFallback(channel['channel']['video_banner'])
-                        )
-                )
+                ))
         return oc
 
 @route('video/twitch/channel/menu')
@@ -96,24 +92,24 @@ def ChannelMenu(channel):
 
         channelObject = JSON.ObjectFromURL(url)
 
+        # Watch Live
         oc.add(VideoClipObject(
                 url     = channelObject['url'],
-                title   = channelObject['display_name'],
+                title   = L('watch_stream'),
                 summary = channelObject['status'],
                 thumb   = Resource.ContentsOfURLWithFallback(channelObject['video_banner'])
-                )
-        )
+        ))
 
+        # List Past Broadcasts
         oc.add(DirectoryObject(
                 key   = Callback(ChannelVodsList, channel=channel, limit=5),
                 title = L('past_broadcasts'),
-                )
-        )
+        ))
 
         return oc
 
 @route('/video/twitch/channel/vods')
-def ChannelVodsList(channel=None, apiurl=None, limit=20):
+def ChannelVodsList(channel=None, apiurl=None, limit=PAGE_LIMIT):
         oc = ObjectContainer(title2=L('past_broadcasts'))
 
         if apiurl:
@@ -130,23 +126,21 @@ def ChannelVodsList(channel=None, apiurl=None, limit=20):
                         title   = video['title'],
                         thumb   = Resource.ContentsOfURLWithFallback(video['preview']),
                         summary = video['description']
-                        )
-                )
+                ))
 
         if videos['_links']['next']:
                 oc.add(NextPageObject(
                         key   = Callback(ChannelVodsList, apiurl=videos['_links']['next'], limit=limit),
                         title = L('more')
-                        )
-                )
+                ))
         return oc
 
 ####################################################################################################
 @route('/video/twitch/featured')
-def FeaturedStreamsMenu():
+def FeaturedStreamsMenu(limit=PAGE_LIMIT):
 
 	oc = ObjectContainer(title2=L('featured_streams'), no_cache=True)
-	url = "%s?limit=%s" % (TWITCH_FEATURED_STREAMS, PAGE_LIMIT)
+	url = "%s?limit=%s" % (TWITCH_FEATURED_STREAMS, limit)
 	featured = JSON.ObjectFromURL(url)
 
 	for stream in featured['featured']:
@@ -157,19 +151,18 @@ def FeaturedStreamsMenu():
 		else:
 			subtitle = "%s Viewers" % (stream['stream']['viewers'])
 
-		oc.add(VideoClipObject(
-			url = stream['stream']['channel']['url'],
-			title = stream['stream']['channel']['display_name'],
-			summary = '%s\n\n%s' % (subtitle, summary),
-			thumb = Resource.ContentsOfURLWithFallback(stream['stream']['preview']['large'])
-		      )
-                )
+                oc.add(PopupDirectoryObject(
+                        key = Callback(ChannelMenu, channel=stream['stream']['channel']['name']),
+                        title = stream['stream']['channel']['display_name'],
+                        summary = '%s\n\n%s' % (subtitle, summary),
+                        thumb = Resource.ContentsOfURLWithFallback(stream['stream']['preview']['large'])
+                ))
 
 	return oc
 
 ####################################################################################################
 @route('/video/twitch/games')
-def ListGames(apiurl=None, limit=20):
+def ListGames(apiurl=None, limit=PAGE_LIMIT):
 
 	oc = ObjectContainer(title2=L('top_games'), no_cache=True)
 
@@ -199,7 +192,7 @@ def ListGames(apiurl=None, limit=20):
 
 ####################################################################################################
 @route('/video/twitch/channel')
-def ListChannelsForGame(game, apiurl=None, limit=20):
+def ListChannelsForGame(game, apiurl=None, limit=PAGE_LIMIT):
 
 	oc = ObjectContainer(title2=game, no_cache=True)
 	url = apiurl if apiurl else "{0}?game={1}&limit={2}".format(TWITCH_LIST_STREAMS, String.Quote(game, usePlus=True), limit)
@@ -208,13 +201,14 @@ def ListChannelsForGame(game, apiurl=None, limit=20):
 
 	for stream in streams['streams']:
                 subtitle = " {0} {1}".format(stream['viewers'], L('viewers'))
-		oc.add(VideoClipObject(
-			url     = stream['channel']['url'],
-			title   = stream['channel']['display_name'],
-			summary = '%s\n\n%s' % (subtitle, stream['channel']['status']),
-			thumb   = Resource.ContentsOfURLWithFallback(stream['channel']['logo'])
-		      )
-                )
+
+                oc.add(PopupDirectoryObject(
+                        key = Callback(ChannelMenu, channel=stream['channel']['name']),
+                        title = stream['channel']['display_name'],
+                        summary = '%s\n\n%s' % (subtitle, stream['channel']['status']),
+                        thumb   = Resource.ContentsOfURLWithFallback(stream['channel']['logo'])
+                ))              
+
         if streams['_links']['next']:
                 oc.add(NextPageObject(
                         key   = Callback(ListChannelsForGame, game=game, apiurl=streams['_links']['next']),
@@ -224,10 +218,10 @@ def ListChannelsForGame(game, apiurl=None, limit=20):
 	return oc
 
 ####################################################################################################
-def SearchResults(query=''):
+def SearchResults(query='', limit=PAGE_LIMIT):
 
 	oc = ObjectContainer(no_cache=True)
-	results = JSON.ObjectFromURL("%s?query=%s&limit=%s" % (TWITCH_SEARCH_STREAMS, String.Quote(query, usePlus=True), PAGE_LIMIT))
+	results = JSON.ObjectFromURL("%s?query=%s&limit=%s" % (TWITCH_SEARCH_STREAMS, String.Quote(query, usePlus=True), limit))
 
 	for stream in results['streams']:
 		if stream['game']:
@@ -235,12 +229,12 @@ def SearchResults(query=''):
 		else:
                         subtitle = "{0} {1}".format(stream['viewers'], L('viewers'))
 
-		oc.add(VideoClipObject(
-			url     = stream['channel']['url'],
-			title   = stream['channel']['display_name'],
-			summary = '%s\n\n%s' % (subtitle, stream['channel']['status']),
-			thumb   = Resource.ContentsOfURLWithFallback(stream['channel']['logo'])
-		))
+                oc.add(PopupDirectoryObject(
+                        key = Callback(ChannelMenu, channel=stream['channel']['name']),
+                        title = stream['channel']['display_name'],
+                        summary = '%s\n\n%s' % (subtitle, stream['channel']['status']),
+                        thumb   = Resource.ContentsOfURLWithFallback(stream['channel']['logo'])
+                ))   
 
 	if len(oc) < 1:
 		return ObjectContainer(header="Not found", message="No streams were found that match your query.")

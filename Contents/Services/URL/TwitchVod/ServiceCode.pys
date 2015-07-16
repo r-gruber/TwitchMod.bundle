@@ -1,10 +1,10 @@
+TWITCH_VOD       = 'https://api.twitch.tv/kraken/videos/{0}'
+# HLS vod
 VOD_TOKEN_URL    = 'http://api.twitch.tv/api/vods/{0}/access_token'
 VOD_PLAYLIST_URL = 'http://usher.twitch.tv/vod/{0}?nauth={1}&nauthsig={2}'
+# Chunked vod
 VOD_PLAYLIST_C   = 'https://api.twitch.tv/api/videos/{0}'
-TWITCH_VOD       = 'https://api.twitch.tv/kraken/videos/{0}'
 
-QUALITY_LIST_STREAM = ['Source', "High", "Medium", "Low", "Mobile"]
-QUALITY_LIST_VIDEO  = ['live', "720p", "480p", "360p", "226p"]
 #live is 9999 because plex wants an int for resolution
 QUALITY_RESOLUTION  = {'live': 9999, "1440p":1440, "1080p":1080, "720p": 720, "480p":480, "360p":360, "226p":226}
 
@@ -85,7 +85,7 @@ def PlayVideo(url):
 #         id = GetVodId(url)
 #         vod_type = GetVodType(url)
 #         vidChunks = JSON.ObjectFromURL(VOD_PLAYLIST_C.format(vod_type+id))
-#         chunks = vidChunks['chunks'][QUALITY_LIST_VIDEO[2]]
+#         chunks = vidChunks['chunks'][0]
 #         playlist = []
 #         vid = MediaObject(
 #                 container = 'flv',
