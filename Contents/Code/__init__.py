@@ -31,12 +31,35 @@ def Start():
 ####################################################################################################
 @handler('/video/twitch', NAME)
 def MainMenu():
-
 	oc = ObjectContainer()
-	oc.add(DirectoryObject(key=Callback(FeaturedStreamsMenu), title="Featured Streams"))
-	oc.add(DirectoryObject(key=Callback(ListGames), title="Games", summary="Browse Live Streams by Game"))
-	oc.add(InputDirectoryObject(key=Callback(SearchResults), title="Search", prompt="Search for a Stream", summary="Search for a Stream"))
-        oc.add(DirectoryObject(key=Callback(FollowedStreamsMenu), title="Followed Streams"))
+
+	oc.add(
+                DirectoryObject(
+                        key   = Callback(FeaturedStreamsMenu),
+                        title = L('featured_streams')
+                )
+        )
+	oc.add(
+                DirectoryObject(
+                        key     = Callback(ListGames),
+                        title   = L('games'),
+                        summary = L('browse_summary')
+                )
+        )
+	oc.add(
+                InputDirectoryObject(
+                        key     = Callback(SearchResults),
+                        title   = L('search'),
+                        prompt  = L('search_prompt'),
+                        summary = L('search_prompt')
+                )
+        )
+        oc.add(
+                DirectoryObject(
+                        key   = Callback(FollowedStreamsMenu),
+                        title = L('followed_streams')
+                )
+        )
         oc.add(
                 PrefsObject(
                         title   = L('Preferences'),
@@ -50,7 +73,7 @@ def MainMenu():
 @route('/video/twitch/following')
 def FollowedStreamsMenu():
 
-        oc = ObjectContainer(title2="Following")
+        oc = ObjectContainer(title2=L('followed_streams'))
 
         username = Prefs['username']
         if not username:
@@ -87,7 +110,7 @@ def ChannelMenu(channel):
 
         oc.add(DirectoryObject(
                 key   = Callback(ChannelVodsList, channel=channel),
-                title = "Past Broadcasts",
+                title = L('past_broadcasts'),
                 )
         )
 
@@ -95,7 +118,7 @@ def ChannelMenu(channel):
 
 @route('/video/twitch/channel/vods')
 def ChannelVodsList(channel=None, apiurl=None, limit=20):
-        oc = ObjectContainer(title2="VODS")
+        oc = ObjectContainer(title2=L('past_broadcasts'))
 
         if apiurl:
                 url = apiurl
@@ -117,7 +140,7 @@ def ChannelVodsList(channel=None, apiurl=None, limit=20):
         if videos['_links']['next']:
                 oc.add(NextPageObject(
                                 key   = Callback(ChannelVodsList, apiurl=videos['_links']['next'], limit=limit),
-                                title = "More..."
+                                title = L('more')
                         )
                 )
         return oc
@@ -126,7 +149,7 @@ def ChannelVodsList(channel=None, apiurl=None, limit=20):
 @route('/video/twitch/featured')
 def FeaturedStreamsMenu():
 
-	oc = ObjectContainer(title2="Featured Streams", no_cache=True)
+	oc = ObjectContainer(title2=L('featured_streams'), no_cache=True)
 	url = "%s?limit=%s" % (TWITCH_FEATURED_STREAMS, PAGE_LIMIT)
 	featured = JSON.ObjectFromURL(url)
 
@@ -151,15 +174,16 @@ def FeaturedStreamsMenu():
 @route('/video/twitch/games')
 def ListGames(apiurl=None, limit=20):
 
-	oc = ObjectContainer(title2="Top Games", no_cache=True)
+	oc = ObjectContainer(title2=L('top_games'), no_cache=True)
 
-        url = apiurl if apiurl else "%s?limit=%s&offset=%s" % (TWITCH_TOP_GAMES, limit, 0)
+        url = apiurl if apiurl else "{0}?limit={1}".format(TWITCH_TOP_GAMES, limit)
+
 
 	games = JSON.ObjectFromURL(url)
 
 	for game in games['top']:
-		game_summary = "%s Channels\n%s Viewers" % (game['channels'], game['viewers'])
-
+		#game_summary = "%s Channels\n%s Viewers" % (game['channels'], game['viewers'])
+                game_summary = "{0} {1}\n{2} {3}".format(game['channels'], L('channels'), game['viewers'], L('viewers'))
                 thumb = game['game']['box']['medium']
 
 		oc.add(DirectoryObject(
@@ -172,22 +196,23 @@ def ListGames(apiurl=None, limit=20):
         if games['_links']['next']:
                 oc.add(NextPageObject(
                         key = Callback(ListGames, apiurl=games['_links']['next']),
-                        title = "More Games..."
+                        title = L('more')
                 ))
 
 	return oc
 
 ####################################################################################################
 @route('/video/twitch/channel')
-def ListChannelsForGame(game, limit=20):
+def ListChannelsForGame(game, apiurl=None, limit=20):
 
 	oc = ObjectContainer(title2=game, no_cache=True)
-	url = "%s?game=%s&limit=%s" % (TWITCH_LIST_STREAMS, String.Quote(game, usePlus=True), limit)
+	url = apiurl if apiurl else "{0}?game={1}&limit={2}".format(TWITCH_LIST_STREAMS, String.Quote(game, usePlus=True), limit)
+
 	streams = JSON.ObjectFromURL(url)
 
 	for stream in streams['streams']:
-		subtitle = " %s Viewers" % stream['viewers']
-
+		#subtitle = " %s Viewers" % stream['viewers']
+                subtitle = " {0} {1}".format(stream['viewers'], L('viewers'))
 		oc.add(VideoClipObject(
 			url     = stream['channel']['url'],
 			title   = stream['channel']['display_name'],
@@ -197,8 +222,8 @@ def ListChannelsForGame(game, limit=20):
                 )
         if streams['_links']['next']:
                 oc.add(NextPageObject(
-                        key = Callback(ListGames, apiurl=streams['_links']['next']),
-                        title = "More..."
+                        key   = Callback(ListChannelsForGame, game=game, apiurl=streams['_links']['next']),
+                        title = L('more')
                 ))
 
 	return oc
@@ -211,9 +236,11 @@ def SearchResults(query=''):
 
 	for stream in results['streams']:
 		if stream['game']:
-			subtitle = "%s\n%s Viewers" % (stream['game'], stream['viewers'])
+			#subtitle = "%s\n%s Viewers" % (stream['game'], stream['viewers'])
+                        subtitle = "{0}\n{1} {2}".format(stream['game'], stream['viewers'], L('viewers'))
 		else:
-			subtitle = "%s Viewers" % (stream['viewers'])
+			#subtitle = "%s Viewers" % (stream['viewers'])
+                        subtitle = "{0} {1}".format(stream['viewers'], L('viewers'))
 
 		oc.add(VideoClipObject(
 			url = stream['channel']['url'],
