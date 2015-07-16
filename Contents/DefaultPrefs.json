@@ -5,10 +5,4 @@
                 "type":         "text",
                 "default":      "",
         },
-        {
-                "id":           "option",
-                "label":        "nothing",
-                "type":         "bool",
-                "default":      "true",
-        },
 ]
