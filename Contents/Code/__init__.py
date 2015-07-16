@@ -33,38 +33,33 @@ def Start():
 def MainMenu():
 	oc = ObjectContainer()
 
-	oc.add(
-                DirectoryObject(
-                        key   = Callback(FeaturedStreamsMenu),
-                        title = L('featured_streams')
+	oc.add(DirectoryObject(
+                key   = Callback(FeaturedStreamsMenu),
+                title = L('featured_streams')
                 )
         )
-	oc.add(
-                DirectoryObject(
-                        key     = Callback(ListGames),
-                        title   = L('games'),
-                        summary = L('browse_summary')
+	oc.add(DirectoryObject(
+                key     = Callback(ListGames),
+                title   = L('games'),
+                summary = L('browse_summary')
                 )
         )
-	oc.add(
-                InputDirectoryObject(
-                        key     = Callback(SearchResults),
-                        title   = L('search'),
-                        prompt  = L('search_prompt'),
-                        summary = L('search_prompt')
+	oc.add(InputDirectoryObject(
+                key     = Callback(SearchResults),
+                title   = L('search'),
+                prompt  = L('search_prompt'),
+                summary = L('search_prompt')
                 )
         )
-        oc.add(
-                DirectoryObject(
-                        key   = Callback(FollowedStreamsMenu),
-                        title = L('followed_streams')
+        oc.add(DirectoryObject(
+                key   = Callback(FollowedStreamsMenu),
+                title = L('followed_streams')
                 )
         )
-        oc.add(
-                PrefsObject(
-                        title   = L('Preferences'),
-                        tagline = L('Preferences'),
-                        summary = L('Preferences'),
+        oc.add(PrefsObject(
+                title   = L('Preferences'),
+                tagline = L('Preferences'),
+                summary = L('Preferences'),
                 )
         )
 
@@ -102,14 +97,15 @@ def ChannelMenu(channel):
         channelObject = JSON.ObjectFromURL(url)
 
         oc.add(VideoClipObject(
-                        url   = channelObject['url'],
-                        title = channelObject['display_name'],
-                        thumb = Resource.ContentsOfURLWithFallback(channelObject['video_banner'])
-                        )
+                url     = channelObject['url'],
+                title   = channelObject['display_name'],
+                summary = channelObject['status'],
+                thumb   = Resource.ContentsOfURLWithFallback(channelObject['video_banner'])
                 )
+        )
 
         oc.add(DirectoryObject(
-                key   = Callback(ChannelVodsList, channel=channel),
+                key   = Callback(ChannelVodsList, channel=channel, limit=5),
                 title = L('past_broadcasts'),
                 )
         )
@@ -139,8 +135,8 @@ def ChannelVodsList(channel=None, apiurl=None, limit=20):
 
         if videos['_links']['next']:
                 oc.add(NextPageObject(
-                                key   = Callback(ChannelVodsList, apiurl=videos['_links']['next'], limit=limit),
-                                title = L('more')
+                        key   = Callback(ChannelVodsList, apiurl=videos['_links']['next'], limit=limit),
+                        title = L('more')
                         )
                 )
         return oc
@@ -166,7 +162,8 @@ def FeaturedStreamsMenu():
 			title = stream['stream']['channel']['display_name'],
 			summary = '%s\n\n%s' % (subtitle, summary),
 			thumb = Resource.ContentsOfURLWithFallback(stream['stream']['preview']['large'])
-		))
+		      )
+                )
 
 	return oc
 
@@ -182,20 +179,19 @@ def ListGames(apiurl=None, limit=20):
 	games = JSON.ObjectFromURL(url)
 
 	for game in games['top']:
-		#game_summary = "%s Channels\n%s Viewers" % (game['channels'], game['viewers'])
                 game_summary = "{0} {1}\n{2} {3}".format(game['channels'], L('channels'), game['viewers'], L('viewers'))
                 thumb = game['game']['box']['medium']
 
 		oc.add(DirectoryObject(
-			key = Callback(ListChannelsForGame, game=game['game']['name']),
-			title = game['game']['name'],
+			key     = Callback(ListChannelsForGame, game=game['game']['name']),
+			title   = game['game']['name'],
 			summary = game_summary,
-			thumb = Resource.ContentsOfURLWithFallback(thumb)
+			thumb   = Resource.ContentsOfURLWithFallback(thumb)
 		))
 
         if games['_links']['next']:
                 oc.add(NextPageObject(
-                        key = Callback(ListGames, apiurl=games['_links']['next']),
+                        key   = Callback(ListGames, apiurl=games['_links']['next']),
                         title = L('more')
                 ))
 
@@ -211,7 +207,6 @@ def ListChannelsForGame(game, apiurl=None, limit=20):
 	streams = JSON.ObjectFromURL(url)
 
 	for stream in streams['streams']:
-		#subtitle = " %s Viewers" % stream['viewers']
                 subtitle = " {0} {1}".format(stream['viewers'], L('viewers'))
 		oc.add(VideoClipObject(
 			url     = stream['channel']['url'],
@@ -236,17 +231,15 @@ def SearchResults(query=''):
 
 	for stream in results['streams']:
 		if stream['game']:
-			#subtitle = "%s\n%s Viewers" % (stream['game'], stream['viewers'])
                         subtitle = "{0}\n{1} {2}".format(stream['game'], stream['viewers'], L('viewers'))
 		else:
-			#subtitle = "%s Viewers" % (stream['viewers'])
                         subtitle = "{0} {1}".format(stream['viewers'], L('viewers'))
 
 		oc.add(VideoClipObject(
-			url = stream['channel']['url'],
-			title = stream['channel']['display_name'],
+			url     = stream['channel']['url'],
+			title   = stream['channel']['display_name'],
 			summary = '%s\n\n%s' % (subtitle, stream['channel']['status']),
-			thumb = Resource.ContentsOfURLWithFallback(stream['channel']['logo'])
+			thumb   = Resource.ContentsOfURLWithFallback(stream['channel']['logo'])
 		))
 
 	if len(oc) < 1:

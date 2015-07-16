@@ -4,15 +4,16 @@
     <dict>
         <key>URL</key>
         <dict>
-            <key>Twitch</key>
+            <key>TwitchVod</key>
             <dict>
                 <key>URLPatterns</key>
                 <array>
-                    <string>http://([^.]+.)?twitch.tv/.+</string>
+                    <string>^http://([^.]+.)?twitch.tv/[^/]+/[avc]/[0-9]+$</string>
                 </array>
                 <key>TestURLs</key>
                 <array>
                     <string>http://www.twitch.tv/twitch/c/6055863</string>
+                    <string>http://www.twitch.tv/previouslyrecorded_live/v/7032424</string>
                 </array>
             </dict>
         </dict>

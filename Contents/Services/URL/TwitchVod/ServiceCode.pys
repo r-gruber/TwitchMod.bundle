@@ -1,0 +1,106 @@
+VOD_TOKEN_URL    = 'http://api.twitch.tv/api/vods/{0}/access_token'
+VOD_PLAYLIST_URL = 'http://usher.twitch.tv/vod/{0}?nauth={1}&nauthsig={2}'
+VOD_PLAYLIST_C   = 'https://api.twitch.tv/api/videos/{0}'
+TWITCH_VOD       = 'https://api.twitch.tv/kraken/videos/{0}'
+
+QUALITY_LIST_STREAM = ['Source', "High", "Medium", "Low", "Mobile"]
+QUALITY_LIST_VIDEO  = ['live', "720p", "480p", "360p", "226p"]
+#live is 9999 because plex wants an int for resolution
+QUALITY_RESOLUTION  = {'live': 9999, "1440p":1440, "1080p":1080, "720p": 720, "480p":480, "360p":360, "226p":226}
+
+def NormalizeURL(url):
+        return url.split('?')[0].split('#')[0].rstrip('/')
+
+def MetadataObjectForURL(url):
+        Log('TWITCH: MetadataObjectForURL - ' + url)
+        id = GetVodId(url)
+        vod_type = GetVodType(url)
+        vod_info_url = TWITCH_VOD.format(vod_type+id)
+
+        video = JSON.ObjectFromURL(vod_info_url)
+        return VideoClipObject(
+                title    = video['title'],
+                summary  = video['description'],
+                thumb    = Resource.ContentsOfURLWithFallback(video['preview']),
+                duration = video['length']*1000
+                )
+
+def MediaObjectsForURL(url):
+        Log('TWITCH: MediaObjectsForURL - ' + url)
+        id = GetVodId(url)
+        vod_type = GetVodType(url)
+
+        # vod is HLS
+        if vod_type == "v":
+                return [
+                        MediaObject(
+                                protocol = 'hls',
+                                container = 'mpegts',
+                                video_codec = VideoCodec.H264,
+                                audio_codec = AudioCodec.AAC,
+                                audio_channels = 2,
+                                optimized_for_streaming = True,
+                                parts = [
+                                        PartObject(
+                                                key = Callback(PlayVideo, url=url)
+                                        )
+                                ]
+                        )
+                ]
+
+        # vod is in flv segments
+        else:
+                # slow. I don't know how to properly add the parts with a callback
+                # so a request is made for each item that is listed
+                objects = []
+                vidChunks = JSON.ObjectFromURL(VOD_PLAYLIST_C.format(vod_type+id))
+                chunks = vidChunks['chunks']
+
+                for quality in chunks:
+                        vid = MediaObject(
+                                container = 'flv',
+                                video_codec = VideoCodec.H264,
+                                audio_codec = AudioCodec.AAC,
+                                video_resolution = QUALITY_RESOLUTION[quality]
+                        )
+                        for chunk in chunks[quality]:
+                                vid.add(PartObject(key=chunk['url'], duration=chunk['length']*1000))
+                        objects.append(vid)
+
+                return objects
+
+@indirect
+def PlayVideo(url):
+        id = GetVodId(url)
+        vod_type = GetVodType(url)
+
+        token = JSON.ObjectFromURL(VOD_TOKEN_URL.format(id), cacheTime=0)
+
+        video_url = VOD_PLAYLIST_URL.format(id, String.Quote(token['token']), String.Quote(token['sig']))
+
+        return IndirectResponse(VideoClipObject, key=HTTPLiveStreamURL(video_url))
+
+# # Callback to add parts to a mediaobject
+# def PlayVideoChunked(url):
+#         id = GetVodId(url)
+#         vod_type = GetVodType(url)
+#         vidChunks = JSON.ObjectFromURL(VOD_PLAYLIST_C.format(vod_type+id))
+#         chunks = vidChunks['chunks'][QUALITY_LIST_VIDEO[2]]
+#         playlist = []
+#         vid = MediaObject(
+#                 container = 'flv',
+#                 video_codec = VideoCodec.H264,
+#                 audio_codec = AudioCodec.AAC
+#                 )
+#         for chunk in chunks:
+#                 playlist.append(chunk['url'])
+#                 vid.add(PartObject(key=chunk['url'], duration=chunk['length']*1000))
+#         return vid
+
+# vod urls are http://www.twitch.tv/channelname/type/id
+def GetVodId(url):
+        return url.split('/')[-1]
+def GetVodType(url):
+        return url.split('/')[-2]
+def GetChannelName(url):
+        return url.split('/')[-3]
