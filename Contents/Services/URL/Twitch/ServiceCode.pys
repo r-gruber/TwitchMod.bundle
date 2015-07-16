@@ -1,0 +1,51 @@
+VOD_TOKEN    = 'http://api.twitch.tv/api/vods/{0}/access_token'
+VOD_PLAYLIST = 'http://usher.twitch.tv/vod/{0}?nauth={1}&nauthsig={2}'
+TWITCH_VOD   = 'https://api.twitch.tv/kraken/videos/{0}'
+
+def MetadataObjectForURL(url):
+        Log('TWITCH:')
+        id = url.split("/")[-1]
+        vod_info_url = TWITCH_VOD.format(id)
+
+        video = JSON.ObjectFromURL(vod_info_url)
+        return VideoClipObject(
+                title   = video['title'],
+                summary = video['description'],
+                thumb   = video['preview']
+                )
+
+def MediaObjectsForURL(url):
+        Log('TWITCH:')
+        return [
+                MediaObject(
+                        protocol = 'hls',
+                        container = 'mpegts',
+                        video_codec = VideoCodec.H264,
+                        audio_codec = AudioCodec.AAC,
+                        audio_channels = 2,
+                        optimized_for_streaming = True,
+                        parts = [PartObject(key=Callback(PlayVideo, url = url))]
+                )
+        ]
+
+def NormalizeURL(url):
+        return url.split('?')[0].split('#')[0].rstrip('/')
+
+@indirect
+def PlayVideo(url):
+        Log('TWITCH: PlayVideo - ' + url)
+        id = url.split("/")[-1]
+        vod_type = url.split("/")[-2]
+
+        if vod_type == "v":
+                try:
+                        token = JSON.ObjectFromURL(VOD_TOKEN.format(id), cacheTime=0)
+                except:
+                        raise Ex.MediaNotAvailable
+
+                video_url = VOD_PLAYLIST.format(id, String.Quote(token['token']), String.Quote(token['sig']))
+                Log('TWITCH: --> Final video_url: %s' % video_url)
+
+                return IndirectResponse(VideoClipObject, key=HTTPLiveStreamURL(video_url))
+        elif vod_type == a or vod_type == c:
+                return IndirectResponse(VideoClipObject, key=HTTPLiveStreamURL(url))

@@ -1,0 +1,14 @@
+[
+        {
+                "id":           "username",
+                "label":        "Username",
+                "type":         "text",
+                "default":      "",
+        },
+        {
+                "id":           "option",
+                "label":        "nothing",
+                "type":         "bool",
+                "default":      "true",
+        },
+]
