@@ -48,11 +48,18 @@ def MediaObjectsForURL(url):
                         )
                 ]
 
-        # vod is in flv segments
+        # vod is in 30min flv segments
+        # slow. I don't know how to properly add the parts with a callback
+        # so a request is made for each item that is listed
         else:
-                # slow. I don't know how to properly add the parts with a callback
-                # so a request is made for each item that is listed
-                objects = []
+                # example json from VOD_PLAYLIST_C
+                # {
+                #     "chunks": {
+                #         "live": [ { "url": "part1.flv" }, { "url": "part2.flv" } ],
+                #         "480p": [ { "url": "part1.flv" }, { "url": "part2.flv" } ],
+                #     }
+                # }
+                mediaObjects = []
                 vidChunks = JSON.ObjectFromURL(VOD_PLAYLIST_C.format(vod_type+id))
                 chunks = vidChunks['chunks']
 
@@ -64,10 +71,10 @@ def MediaObjectsForURL(url):
                                 video_resolution = QUALITY_RESOLUTION[quality]
                         )
                         for chunk in chunks[quality]:
-                                vid.add(PartObject(key=chunk['url'], duration=chunk['length']*1000))
-                        objects.append(vid)
+                                vid.add(PartObject(key=chunk['url']))
+                        mediaObjects.append(vid)
 
-                return objects
+                return mediaObjects
 
 @indirect
 def PlayVideo(url):
@@ -79,23 +86,6 @@ def PlayVideo(url):
         video_url = VOD_PLAYLIST_URL.format(id, String.Quote(token['token']), String.Quote(token['sig']))
 
         return IndirectResponse(VideoClipObject, key=HTTPLiveStreamURL(video_url))
-
-# # Callback to add parts to a mediaobject
-# def PlayVideoChunked(url):
-#         id = GetVodId(url)
-#         vod_type = GetVodType(url)
-#         vidChunks = JSON.ObjectFromURL(VOD_PLAYLIST_C.format(vod_type+id))
-#         chunks = vidChunks['chunks'][0]
-#         playlist = []
-#         vid = MediaObject(
-#                 container = 'flv',
-#                 video_codec = VideoCodec.H264,
-#                 audio_codec = AudioCodec.AAC
-#                 )
-#         for chunk in chunks:
-#                 playlist.append(chunk['url'])
-#                 vid.add(PartObject(key=chunk['url'], duration=chunk['length']*1000))
-#         return vid
 
 # vod urls are http://www.twitch.tv/channelname/type/id
 def GetVodId(url):
