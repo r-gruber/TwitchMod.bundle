@@ -100,32 +100,41 @@ def ChannelMenu(channel):
                 thumb   = Resource.ContentsOfURLWithFallback(channelObject['video_banner'])
         ))
 
+        # List Highlights
+        oc.add(DirectoryObject(
+                key   = Callback(ChannelVodsList, channel=channel, limit=5, broadcasts=False),
+                title = L('highlights'),
+        ))
+
         # List Past Broadcasts
         oc.add(DirectoryObject(
-                key   = Callback(ChannelVodsList, channel=channel, limit=5),
+                key   = Callback(ChannelVodsList, channel=channel, limit=5, broadcasts=True),
                 title = L('past_broadcasts'),
         ))
 
         return oc
 
 @route('/video/twitch/channel/vods')
-def ChannelVodsList(channel=None, apiurl=None, limit=PAGE_LIMIT):
+def ChannelVodsList(channel=None, apiurl=None, broadcasts=True, limit=PAGE_LIMIT):
         oc = ObjectContainer(title2=L('past_broadcasts'))
 
         if apiurl:
                 url = apiurl
         else:
-                limitstr = "?limit={0}&offset={1}".format(limit, 0)
+                limitstr = "?limit={0}&offset={1}&broadcasts={2}".format(limit, 0, str(broadcasts).lower())
                 url = TWITCH_CHANNEL_VODS.format(channel) + limitstr
 
         videos = JSON.ObjectFromURL(url)
 
         for video in videos['videos']:
+                vod_date = Datetime.ParseDate(video['recorded_at'])
+                title = "{0} - {1}".format(vod_date.strftime('%a %b %d, %Y'), video['title'])
                 oc.add(VideoClipObject(
                         url     = video['url'],
-                        title   = video['title'],
+                        title   = title,
                         thumb   = Resource.ContentsOfURLWithFallback(video['preview']),
-                        summary = video['description']
+                        summary = video['description'],
+                        duration = video['length']*1000
                 ))
 
         if videos['_links']['next']:
