@@ -102,13 +102,13 @@ def ChannelMenu(channel):
 
         # List Highlights
         oc.add(DirectoryObject(
-                key   = Callback(ChannelVodsList, channel=channel, limit=5, broadcasts=False),
+                key   = Callback(ChannelVodsList, channel=channel, broadcasts=False),
                 title = L('highlights'),
         ))
 
         # List Past Broadcasts
         oc.add(DirectoryObject(
-                key   = Callback(ChannelVodsList, channel=channel, limit=5, broadcasts=True),
+                key   = Callback(ChannelVodsList, channel=channel, broadcasts=True),
                 title = L('past_broadcasts'),
         ))
 
