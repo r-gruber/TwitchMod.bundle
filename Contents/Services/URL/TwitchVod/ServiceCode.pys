@@ -1,5 +1,6 @@
 from playlist import M3UPlaylist
 import qualities as Qualities
+import defs as Defs
 # two types of vods: v type vods are hls, c/a type vods are 30min segmented flvs
 VOD_DATA         = 'https://api.twitch.tv/kraken/videos/{0}'
 HLS_TOKEN_URL    = 'http://api.twitch.tv/api/vods/{0}/access_token'
@@ -13,7 +14,11 @@ def GetVodId(url):
 
 def GetVodType(url):
 
-        return url.split('/')[-2]
+        vod_type = url.split('/')[-2]
+        # apparently b types need to be changed to a to make api calls (taken from livestreamer twitch plugin)
+        if vod_type == "b":
+                vod_type = "a" 
+        return vod_type
 
 ####################################################################################################
 def NormalizeURL(url):
@@ -45,7 +50,6 @@ def MediaObjectsForURL(url):
 
         # vod is HLS
         if vod_type == "v":
-
                 return [
                         MediaObject(
                                 protocol = 'hls',
@@ -71,16 +75,29 @@ def MediaObjectsForURL(url):
                 vidChunks = JSON.ObjectFromURL(CHU_PLAYLIST_URL.format(vod_type+vod_id))
                 chunks = vidChunks['chunks']
 
-                for quality in chunks:
-                        vid = MediaObject(
-                                container = 'flv',
-                                video_codec = VideoCodec.H264,
-                                audio_codec = AudioCodec.AAC,
-                                video_resolution = Qualities.CHUNK_RESOLUTIONS[quality]
-                        )
-                        for chunk in chunks[quality]:
-                                vid.add(PartObject(key=chunk['url']))
-                        mediaObjects.append(vid)
+                for x in xrange(len(Qualities.CHUNK_QUALITIES)):
+                        if Qualities.CHUNK_QUALITIES[x] in chunks:
+                                quality = Qualities.CHUNK_QUALITIES[x]
+                                vid = MediaObject(
+                                        container = 'flv',
+                                        video_codec = VideoCodec.H264,
+                                        audio_codec = AudioCodec.AAC,
+                                        video_resolution = Qualities.CHUNK_RESOLUTIONS[quality]
+                                )
+                                for chunk in chunks[Qualities.CHUNK_QUALITIES[x]]:
+                                        vid.add(PartObject(key=chunk['url']))
+                                mediaObjects.append(vid)
+
+                # for quality in chunks:
+                #         vid = MediaObject(
+                #                 container = 'flv',
+                #                 video_codec = VideoCodec.H264,
+                #                 audio_codec = AudioCodec.AAC,
+                #                 video_resolution = Qualities.CHUNK_RESOLUTIONS[quality]
+                #         )
+                #         for chunk in chunks[quality]:
+                #                 vid.add(PartObject(key=chunk['url']))
+                #         mediaObjects.append(vid)
 
                 return mediaObjects
                 # example json from CHU_PLAYLIST_URL
@@ -99,7 +116,7 @@ def PlayVideo(url, quality=0, **kwargs):
         vod_type = GetVodType(url)
         # get a token
         try:
-                token = JSON.ObjectFromURL(HLS_TOKEN_URL.format(vod_id), cacheTime=0)
+                token = JSON.ObjectFromURL(HLS_TOKEN_URL.format(vod_id), cacheTime=Defs.TOKEN_TIME)
         except:
                 raise Ex.MediaNotAvailable
         # get the playlist with the token
