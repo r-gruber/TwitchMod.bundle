@@ -22,7 +22,7 @@ def MetadataObjectForURL(url):
                 title    = video['title'],
                 summary  = video['description'],
                 thumb    = Resource.ContentsOfURLWithFallback(video['preview']),
-                duration = video['length']*1000
+                duration = int(video['length'])*1000
                 )
 
 def MediaObjectsForURL(url):
