@@ -242,6 +242,7 @@ def ListChannelsForGame(game, apiurl=None, limit=PAGE_LIMIT):
 	return oc
 
 ####################################################################################################
+@route('/video/twitch/search')
 def SearchResults(query='', limit=PAGE_LIMIT):
 
 	oc = ObjectContainer(no_cache=True)
