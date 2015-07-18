@@ -1,35 +1,31 @@
-TWITCH_VOD       = 'https://api.twitch.tv/kraken/videos/{0}'
-# HLS vod
-VOD_TOKEN_URL    = 'http://api.twitch.tv/api/vods/{0}/access_token'
-VOD_PLAYLIST_URL = 'http://usher.twitch.tv/vod/{0}?nauth={1}&nauthsig={2}'
-# Chunked vod
-VOD_PLAYLIST_C   = 'https://api.twitch.tv/api/videos/{0}'
+from playlist import M3UPlaylist
+import qualities as Qualities
+# two types of vods: v type vods are hls, c/a type vods are 30min segmented flvs
+VOD_DATA         = 'https://api.twitch.tv/kraken/videos/{0}'
+HLS_TOKEN_URL    = 'http://api.twitch.tv/api/vods/{0}/access_token'
+HLS_PLAYLIST_URL = 'http://usher.twitch.tv/vod/{0}?nauth={1}&nauthsig={2}'
+CHU_PLAYLIST_URL = 'https://api.twitch.tv/api/videos/{0}'
 
-USER_AGENT = 'User-Agent'
-USER_AGENT_STRING = 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:6.0) Gecko/20100101 Firefox/6.0'
-
-#live is 9999 because plex wants an int for resolution
-CHUNK_RESOLUTIONS  = {"live": 9999, "1440p": 1440, "1080p": 1080, "720p": 720, "480p": 480, "360p": 360, "226p": 226}
-# these values are arbitrary, they just help distinguish the qualities for the client
-HLS_RESOLUTIONS    = {"Source": 1080, "High": 720, "Medium": 480, "Low": 360, "Mobile": 226}
-HLS_QUALITIES      = ["Source","High","Medium","Low","Mobile"]
-
-# vod urls are http://www.twitch.tv/channelname/type/id
+####################################################################################################
 def GetVodId(url):
-        return url.split('/')[-1]
-def GetVodType(url):
-        return url.split('/')[-2]
-def GetChannelName(url):
-        return url.split('/')[-3]
 
+        return url.split('/')[-1]
+
+def GetVodType(url):
+
+        return url.split('/')[-2]
+
+####################################################################################################
 def NormalizeURL(url):
         return url.split('?')[0].split('#')[0].rstrip('/')
 
+####################################################################################################
 def MetadataObjectForURL(url):
+
         Log('TWITCH: MetadataObjectForURL - ' + url)
         id = GetVodId(url)
         vod_type = GetVodType(url)
-        vod_info_url = TWITCH_VOD.format(vod_type+id)
+        vod_info_url = VOD_DATA.format(vod_type+id)
 
         video = JSON.ObjectFromURL(vod_info_url)
         return VideoClipObject(
@@ -37,9 +33,11 @@ def MetadataObjectForURL(url):
                 summary  = video['description'],
                 thumb    = Resource.ContentsOfURLWithFallback(video['preview']),
                 duration = int(video['length'])*1000
-                )
+        )
 
+####################################################################################################
 def MediaObjectsForURL(url):
+
         Log('TWITCH: MediaObjectsForURL - ' + url)
         id = GetVodId(url)
         vod_type = GetVodType(url)
@@ -49,7 +47,7 @@ def MediaObjectsForURL(url):
                 mediaObjects = []
                 # Add all the qualities regardless of if they exist. PlayVideo will fallback to an
                 #  available quality
-                for x in xrange(len(HLS_QUALITIES)):
+                for x in xrange(len(Qualities.HLS_QUALITIES)):
                         mediaObjects.append(
                                 MediaObject(
                                         protocol = 'hls',
@@ -58,7 +56,7 @@ def MediaObjectsForURL(url):
                                         audio_codec = AudioCodec.AAC,
                                         audio_channels = 2,
                                         optimized_for_streaming = True,
-                                        video_resolution = HLS_RESOLUTIONS[HLS_QUALITIES[x]],
+                                        video_resolution = Qualities.HLS_RESOLUTIONS[Qualities.HLS_QUALITIES[x]],
                                         parts = [
                                                 PartObject(
                                                         key = Callback(PlayVideo, url=url, quality=x)
@@ -74,7 +72,7 @@ def MediaObjectsForURL(url):
         # slow. I don't know how to properly add the parts with a callback
         # so a request is made for each item that is listed
         else:
-                # example json from VOD_PLAYLIST_C
+                # example json from CHU_PLAYLIST_URL
                 # {
                 #     "chunks": {
                 #         "live": [ { "url": "part1.flv" }, { "url": "part2.flv" } ],
@@ -82,7 +80,7 @@ def MediaObjectsForURL(url):
                 #     }
                 # }
                 mediaObjects = []
-                vidChunks = JSON.ObjectFromURL(VOD_PLAYLIST_C.format(vod_type+id))
+                vidChunks = JSON.ObjectFromURL(CHU_PLAYLIST_URL.format(vod_type+id))
                 chunks = vidChunks['chunks']
 
                 for quality in chunks:
@@ -90,7 +88,7 @@ def MediaObjectsForURL(url):
                                 container = 'flv',
                                 video_codec = VideoCodec.H264,
                                 audio_codec = AudioCodec.AAC,
-                                video_resolution = CHUNK_RESOLUTIONS[quality]
+                                video_resolution = Qualities.CHUNK_RESOLUTIONS[quality]
                         )
                         for chunk in chunks[quality]:
                                 vid.add(PartObject(key=chunk['url']))
@@ -98,14 +96,19 @@ def MediaObjectsForURL(url):
 
                 return mediaObjects
 
+####################################################################################################
 @indirect
 def PlayVideo(url, quality=0, **kwargs):
+
         vod_id   = GetVodId(url)
         vod_type = GetVodType(url)
         # get a token
-        token = JSON.ObjectFromURL(VOD_TOKEN_URL.format(vod_id), cacheTime=0)
+        try:
+                token = JSON.ObjectFromURL(HLS_TOKEN_URL.format(vod_id), cacheTime=0)
+        except:
+                raise Ex.MediaNotAvailable
         # get the playlist with the token
-        playlist_url = VOD_PLAYLIST_URL.format(vod_id, String.Quote(token['token']), String.Quote(token['sig']))
+        playlist_url = HLS_PLAYLIST_URL.format(vod_id, String.Quote(token['token']), String.Quote(token['sig']))
         # get the playlists contents so we can extract the quality we want
         playlist_contents = HTTP.Request(playlist_url, cacheTime=0).content
         # parse the qualities
@@ -114,44 +117,3 @@ def PlayVideo(url, quality=0, **kwargs):
         final_url = qualities.getQuality(quality)
 
         return IndirectResponse(VideoClipObject, key=HTTPLiveStreamURL(final_url))
-
-# adapted from kodi twitch plugin (plex doesnt let you use certain python functions)
-# This takes an m3u8 file with multiple qualities in it and parses it into a dict
-#  where the key is the quality name and the value is the url.
-class M3UPlaylist(object):
-        def __init__(self, input):
-                self.playlist = {}
-
-                lines = input.splitlines()
-                for line in lines:
-                        if line.startswith('#EXT-X-MEDIA'):
-                                namePosition = line.find('NAME')
-                                if namePosition == -1:
-                                        return
-                                qualityName = ''
-                                namePosition += 6 # NAME="
-                                while line[namePosition] != '"':
-                                        qualityName += line[namePosition]
-                                        namePosition += 1
-                                try:
-                                        url = lines[lines.index(line)+2]
-                                except:
-                                        url = None
-                                self.playlist[qualityName] = url
-
-        #returns selected quality or best match if not available
-        def getQuality(self, QualityInt):
-                if HLS_QUALITIES[QualityInt] in self.playlist:
-                        #selected quality is available
-                        return self.playlist[HLS_QUALITIES[QualityInt]]
-                else:
-                        #not available, start with worst quality and improve
-                        #break if better quality is not available
-                        bestMatch = len(HLS_QUALITIES) - 1
-                        for newMatch in range(bestMatch, -1, -1):
-                                if HLS_QUALITIES[newMatch] in self.playlist:
-                                        bestMatch = newMatch
-                        return self.playlist[HLS_QUALITIES[bestMatch]]
-
-        def __str__(self):
-                return repr(self.playlist)

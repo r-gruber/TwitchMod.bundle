@@ -1,0 +1,22 @@
+# live value is arbitrary, 
+CHUNK_RESOLUTIONS = {
+        "live":  2560,
+        "1440p": 1440,
+        "1080p": 1080,
+        "720p":  720,
+        "480p":  480,
+        "360p":  360,
+        "226p":  226
+}
+
+# these values are arbitrary, they just help distinguish the qualities for the client
+# twitch intentionally hides what the qualities mean in terms of resolution
+HLS_RESOLUTIONS = {
+        "Source": 1080,
+        "High":   720,
+        "Medium": 480,
+        "Low":    360,
+        "Mobile": 226
+}
+
+HLS_QUALITIES = ["Source", "High", "Medium", "Low", "Mobile"]

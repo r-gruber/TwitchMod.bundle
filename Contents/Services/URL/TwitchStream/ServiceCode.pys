@@ -1,9 +1,15 @@
-STREAM_DATA = 'https://api.twitch.tv/kraken/streams/%s'
-HLS_TOKEN_URL = 'http://api.twitch.tv/api/channels/%s/access_token'
+from playlist import M3UPlaylist
+import qualities as Qualities
+
+STREAM_DATA      = 'https://api.twitch.tv/kraken/streams/%s'
+HLS_TOKEN_URL    = 'http://api.twitch.tv/api/channels/%s/access_token'
 HLS_PLAYLIST_URL = 'http://usher.twitch.tv/api/channel/hls/%s.m3u8?token=%s&sig=%s'
 
-HLS_RESOLUTIONS  = {"Source": 1080, "High": 720, "Medium": 480, "Low": 360, "Mobile": 226}
-HLS_QUALITIES    = ["Source","High","Medium","Low","Mobile"]
+####################################################################################################
+def GetUserId(url):
+
+        return url.split('/')[-1]
+
 ####################################################################################################
 def NormalizeURL(url):
 
@@ -12,10 +18,10 @@ def NormalizeURL(url):
 ####################################################################################################
 def MetadataObjectForURL(url):
 
-        vod_id = GetVodId(url)
+        user_id = GetUserId(url)
 
         try:
-                video = JSON.ObjectFromURL(STREAM_DATA % vod_id, cacheTime=0)
+                video = JSON.ObjectFromURL(STREAM_DATA % user_id, cacheTime=0)
         except:
                 raise Ex.MediaNotAvailable
 
@@ -36,8 +42,10 @@ def MetadataObjectForURL(url):
 
 ####################################################################################################
 def MediaObjectsForURL(url):
+
         mediaObjects = []
-        for x in xrange(len(HLS_QUALITIES)):
+
+        for x in xrange(len(Qualities.HLS_QUALITIES)):
                 mediaObjects.append(
                         MediaObject(
                                 protocol = 'hls',
@@ -46,7 +54,7 @@ def MediaObjectsForURL(url):
                                 audio_codec = AudioCodec.AAC,
                                 audio_channels = 2,
                                 optimized_for_streaming = True,
-                                video_resolution = HLS_RESOLUTIONS[HLS_QUALITIES[x]],
+                                video_resolution = Qualities.HLS_RESOLUTIONS[Qualities.HLS_QUALITIES[x]],
                                 parts = [
                                         PartObject(
                                                 key = Callback(PlayVideo, url=url, quality=x, ext='m3u8')
@@ -54,20 +62,22 @@ def MediaObjectsForURL(url):
                                 ]
                         )
                 )
+
         return mediaObjects
 
 ####################################################################################################
 @indirect
 def PlayVideo(url, quality=0, **kwargs):
-        vod_id   = GetVodId(url)
-        vod_type = GetVodType(url)
+
+        user_id   = GetUserId(url)
+
         # get a token
         try:
-                token = JSON.ObjectFromURL(HLS_TOKEN_URL % vod_id, cacheTime=0)
+                token = JSON.ObjectFromURL(HLS_TOKEN_URL % user_id, cacheTime=0)
         except:
                 raise Ex.MediaNotAvailable
         # get the playlist with the token
-        playlist_url = HLS_PLAYLIST_URL % (vod_id, String.Quote(token['token']), String.Quote(token['sig']))
+        playlist_url = HLS_PLAYLIST_URL % (user_id, String.Quote(token['token']), String.Quote(token['sig']))
         # get the playlists contents so we can extract the quality we want
         playlist_contents = HTTP.Request(playlist_url, cacheTime=0).content
         # parse the qualities
@@ -76,52 +86,3 @@ def PlayVideo(url, quality=0, **kwargs):
         final_url = qualities.getQuality(quality)
 
         return IndirectResponse(VideoClipObject, key=HTTPLiveStreamURL(final_url))
-
-####################################################################################################
-def GetVodId(url):
-        return url.split('/')[-1]
-def GetVodType(url):
-        return url.split('/')[-2]
-def GetChannelName(url):
-        return url.split('/')[-3]
-
-# adapted from kodi twitch plugin (plex doesnt let you use certain python functions)
-# This takes an m3u8 file with multiple qualities in it and parses it into a dict
-#  where the key is the quality name and the value is the url.
-class M3UPlaylist(object):
-        def __init__(self, input):
-                self.playlist = {}
-
-                lines = input.splitlines()
-                for line in lines:
-                        if line.startswith('#EXT-X-MEDIA'):
-                                namePosition = line.find('NAME')
-                                if namePosition == -1:
-                                        return
-                                qualityName = ''
-                                namePosition += 6 # NAME="
-                                while line[namePosition] != '"':
-                                        qualityName += line[namePosition]
-                                        namePosition += 1
-                                try:
-                                        url = lines[lines.index(line)+2]
-                                except:
-                                        url = None
-                                self.playlist[qualityName] = url
-
-        #returns selected quality or best match if not available
-        def getQuality(self, QualityInt):
-                if HLS_QUALITIES[QualityInt] in self.playlist:
-                        #selected quality is available
-                        return self.playlist[HLS_QUALITIES[QualityInt]]
-                else:
-                        #not available, start with worst quality and improve
-                        #break if better quality is not available
-                        bestMatch = len(HLS_QUALITIES) - 1
-                        for newMatch in range(bestMatch, -1, -1):
-                                if HLS_QUALITIES[newMatch] in self.playlist:
-                                        bestMatch = newMatch
-                        return self.playlist[HLS_QUALITIES[bestMatch]]
-
-        def __str__(self):
-                return repr(self.playlist)
