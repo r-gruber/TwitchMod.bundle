@@ -1,3 +1,11 @@
+Note:
+-----
+I'm redefining the Twitch.tv URL service that's located in:
+
+"%PMS_DIR%\Plug-ins\Services.bundle\Contents\Service Sets\com.plexapp.plugins.twitchtv"
+
+So delete that so the plugin will use its own.
+
 License
 -------
 
