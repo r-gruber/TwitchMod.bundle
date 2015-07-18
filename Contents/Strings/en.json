@@ -12,5 +12,7 @@
         "channels": "Channels",
         "viewers": "Viewers",
         "watch_stream": "Watch Stream",
-        "highlights": "Highlights"
+        "highlights": "Highlights",
+        "live": "LIVE",
+        "offline": "OFFLINE",
 }
