@@ -1,5 +1,6 @@
 from playlist import M3UPlaylist
 import qualities as Qualities
+import defs as Defs
 
 STREAM_DATA      = 'https://api.twitch.tv/kraken/streams/%s'
 HLS_TOKEN_URL    = 'http://api.twitch.tv/api/channels/%s/access_token'
@@ -68,7 +69,7 @@ def PlayVideo(url, quality=0, **kwargs):
 
         # get a token
         try:
-                token = JSON.ObjectFromURL(HLS_TOKEN_URL % user_id, cacheTime=0)
+                token = JSON.ObjectFromURL(HLS_TOKEN_URL % user_id, cacheTime=Defs.TOKEN_TIME)
         except:
                 raise Ex.MediaNotAvailable
         # get the playlist with the token
