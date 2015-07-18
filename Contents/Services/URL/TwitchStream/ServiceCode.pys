@@ -3,7 +3,7 @@ import qualities as Qualities
 
 STREAM_DATA      = 'https://api.twitch.tv/kraken/streams/%s'
 HLS_TOKEN_URL    = 'http://api.twitch.tv/api/channels/%s/access_token'
-HLS_PLAYLIST_URL = 'http://usher.twitch.tv/api/channel/hls/%s.m3u8?token=%s&sig=%s'
+HLS_PLAYLIST_URL = 'http://usher.twitch.tv/api/channel/hls/%s.m3u8?token=%s&sig=%s&allow_source=true'
 
 ####################################################################################################
 def GetUserId(url):
@@ -77,6 +77,7 @@ def PlayVideo(url, quality=0, **kwargs):
         playlist_contents = HTTP.Request(playlist_url, cacheTime=0).content
         # parse the qualities
         qualities = M3UPlaylist(playlist_contents)
+        Log("TWITCH: + " + str(qualities))
         # the address to the m3u8 of the quality we want
         final_url = qualities.getQuality(quality)
 

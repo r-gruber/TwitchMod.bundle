@@ -2,7 +2,7 @@
 # This takes an m3u8 file with multiple qualities in it and parses it into a dict
 #  where the key is the quality name and the value is the url.
 
-HLS_QUALITIES = ["Source","High","Medium","Low","Mobile"]
+import qualities as Qualities
 
 class M3UPlaylist(object):
         def __init__(self, input):
@@ -29,17 +29,17 @@ class M3UPlaylist(object):
         #returns selected quality or best match if not available
         def getQuality(self, QualityInt):
 
-                if HLS_QUALITIES[QualityInt] in self.playlist:
+                if Qualities.HLS_QUALITIES[QualityInt] in self.playlist:
                         #selected quality is available
-                        return self.playlist[HLS_QUALITIES[QualityInt]]
+                        return self.playlist[Qualities.HLS_QUALITIES[QualityInt]]
                 else:
                         #not available, start with worst quality and improve
                         #break if better quality is not available
-                        bestMatch = len(HLS_QUALITIES) - 1
+                        bestMatch = len(Qualities.HLS_QUALITIES) - 1
                         for newMatch in range(bestMatch, -1, -1):
-                                if HLS_QUALITIES[newMatch] in self.playlist:
+                                if Qualities.HLS_QUALITIES[newMatch] in self.playlist:
                                         bestMatch = newMatch
-                        return self.playlist[HLS_QUALITIES[bestMatch]]
+                        return self.playlist[Qualities.HLS_QUALITIES[bestMatch]]
 
         def __str__(self):
                 
