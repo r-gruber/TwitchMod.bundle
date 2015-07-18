@@ -1,0 +1,2 @@
+# tokens are valid for 15 minutes (http://www.johannesbader.ch/2014/01/find-video-url-of-twitch-tv-live-streams-or-past-broadcasts/)
+TOKEN_TIME = 15
