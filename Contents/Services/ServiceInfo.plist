@@ -1,21 +1,28 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
-    <dict>
-        <key>URL</key>
         <dict>
-            <key>TwitchVod</key>
-            <dict>
-                <key>URLPatterns</key>
-                <array>
-                    <string>^http://([^.]+.)?twitch.tv/[^/]+/[avc]/[0-9]+$</string>
-                </array>
-                <key>TestURLs</key>
-                <array>
-                    <string>http://www.twitch.tv/twitch/c/6055863</string>
-                    <string>http://www.twitch.tv/previouslyrecorded_live/v/7032424</string>
-                </array>
-            </dict>
+                <key>URL</key>
+                <dict>
+                        <key>TwitchVod</key>
+                        <dict>
+                                <key>URLPatterns</key>
+                                <array>
+                                        <string>^http://([^.]+.)?twitch.tv/[^/]+/[avc]/[0-9]+$</string>
+                                </array>
+                                <key>TestURLs</key>
+                                <array>
+                                        <string>http://www.twitch.tv/twitch/c/6055863</string>
+                                        <string>http://www.twitch.tv/previouslyrecorded_live/v/7032424</string>
+                                </array>
+                        </dict>
+                        <key>TwitchStream</key>
+                        <dict>
+                                <key>URLPatterns</key>
+                                <array>
+                                        <string>^http://www\.twitch\.tv/[^/]+$</string>
+                                </array>
+                        </dict>
+                </dict>
         </dict>
-    </dict>
 </plist>
