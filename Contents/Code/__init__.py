@@ -97,11 +97,10 @@ def ChannelMenu(channel):
         # Watch Live
         if channelObject['stream']:
                 viewers = channelObject['stream']['viewers']
+
                 # channel status sometimes gave a key error
-                try:
-                        status = channelObject['stream']['channel']['status']
-                except:
-                        status = "n/a"
+                status = channelObject['stream']['channel']['status'] if 'status' in channelObject['stream']['channel'] else ''
+
                 summary = '{0} {1}\n{2}'.format(viewers, L('viewers'), status)
                 oc.add(VideoClipObject(
                         url     = channelObject['stream']['channel']['url'],
@@ -220,11 +219,8 @@ def ListChannelsForGame(game, apiurl=None, limit=PAGE_LIMIT):
 
 	for stream in streams['streams']:
                 viewersString = " {0} {1}".format(stream['viewers'], L('viewers'))
-                # channel status sometimes gave a key error
-                try:
-                        status = stream['channel']['status']
-                except:
-                        status = "n/a"
+
+                status = stream['channel']['status'] if 'status' in stream['channel'] else ''
 
                 oc.add(PopupDirectoryObject(
                         key     = Callback(ChannelMenu, channel=stream['channel']['name']),
@@ -251,10 +247,8 @@ def SearchResults(query='', limit=PAGE_LIMIT):
 	for stream in results['streams']:
                 viewersString = "{0} {1}".format(stream['viewers'], L('viewers'))
                 subtitle = "{0}\n{1}".format(stream['game'], viewersString) if stream['game'] else viewersString
-                try:
-                        status = stream['channel']['status']
-                except:
-                        status = "n/a"
+
+                status = stream['channel']['status'] if 'status' in stream['channel'] else ''
 
                 oc.add(PopupDirectoryObject(
                         key     = Callback(ChannelMenu, channel=stream['channel']['name']),

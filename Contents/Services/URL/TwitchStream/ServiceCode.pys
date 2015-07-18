@@ -43,27 +43,22 @@ def MetadataObjectForURL(url):
 ####################################################################################################
 def MediaObjectsForURL(url):
 
-        mediaObjects = []
-
-        for x in xrange(len(Qualities.HLS_QUALITIES)):
-                mediaObjects.append(
-                        MediaObject(
-                                protocol = 'hls',
-                                container = 'mpegts',
-                                video_codec = VideoCodec.H264,
-                                audio_codec = AudioCodec.AAC,
-                                audio_channels = 2,
-                                optimized_for_streaming = True,
-                                video_resolution = Qualities.HLS_RESOLUTIONS[Qualities.HLS_QUALITIES[x]],
-                                parts = [
-                                        PartObject(
-                                                key = Callback(PlayVideo, url=url, quality=x, ext='m3u8')
-                                        )
-                                ]
-                        )
-                )
-
-        return mediaObjects
+        return [
+                MediaObject(
+                        protocol = 'hls',
+                        container = 'mpegts',
+                        video_codec = VideoCodec.H264,
+                        audio_codec = AudioCodec.AAC,
+                        audio_channels = 2,
+                        optimized_for_streaming = True,
+                        video_resolution = Qualities.HLS_RESOLUTIONS[Qualities.HLS_QUALITIES[x]],
+                        parts = [
+                                PartObject(
+                                        key = Callback(PlayVideo, url=url, quality=x, ext='m3u8')
+                                )
+                        ]
+                ) for x in xrange(len(Qualities.HLS_QUALITIES))
+        ]
 
 ####################################################################################################
 @indirect

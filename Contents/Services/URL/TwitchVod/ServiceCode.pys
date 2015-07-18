@@ -17,6 +17,7 @@ def GetVodType(url):
 
 ####################################################################################################
 def NormalizeURL(url):
+
         return url.split('?')[0].split('#')[0].rstrip('/')
 
 ####################################################################################################
@@ -39,48 +40,35 @@ def MetadataObjectForURL(url):
 def MediaObjectsForURL(url):
 
         Log('TWITCH: MediaObjectsForURL - ' + url)
-        id = GetVodId(url)
+        vod_id   = GetVodId(url)
         vod_type = GetVodType(url)
 
         # vod is HLS
         if vod_type == "v":
-                mediaObjects = []
-                # Add all the qualities regardless of if they exist. PlayVideo will fallback to an
-                #  available quality
-                for x in xrange(len(Qualities.HLS_QUALITIES)):
-                        mediaObjects.append(
-                                MediaObject(
-                                        protocol = 'hls',
-                                        container = 'mpegts',
-                                        video_codec = VideoCodec.H264,
-                                        audio_codec = AudioCodec.AAC,
-                                        audio_channels = 2,
-                                        optimized_for_streaming = True,
-                                        video_resolution = Qualities.HLS_RESOLUTIONS[Qualities.HLS_QUALITIES[x]],
-                                        parts = [
-                                                PartObject(
-                                                        key = Callback(PlayVideo, url=url, quality=x)
-                                                )
-                                        ]
-                                )
-                        )
 
-                return mediaObjects
-
+                return [
+                        MediaObject(
+                                protocol = 'hls',
+                                container = 'mpegts',
+                                video_codec = VideoCodec.H264,
+                                audio_codec = AudioCodec.AAC,
+                                audio_channels = 2,
+                                optimized_for_streaming = True,
+                                video_resolution = Qualities.HLS_RESOLUTIONS[Qualities.HLS_QUALITIES[x]],
+                                parts = [
+                                        PartObject(
+                                                key = Callback(PlayVideo, url=url, quality=x)
+                                        )
+                                ]
+                        ) for x in xrange(len(Qualities.HLS_QUALITIES))
+                ]
 
         # vod is in 30min flv segments
         # slow. I don't know how to properly add the parts with a callback
         # so a request is made for each item that is listed
         else:
-                # example json from CHU_PLAYLIST_URL
-                # {
-                #     "chunks": {
-                #         "live": [ { "url": "part1.flv" }, { "url": "part2.flv" } ],
-                #         "480p": [ { "url": "part1.flv" }, { "url": "part2.flv" } ],
-                #     }
-                # }
                 mediaObjects = []
-                vidChunks = JSON.ObjectFromURL(CHU_PLAYLIST_URL.format(vod_type+id))
+                vidChunks = JSON.ObjectFromURL(CHU_PLAYLIST_URL.format(vod_type+vod_id))
                 chunks = vidChunks['chunks']
 
                 for quality in chunks:
@@ -95,6 +83,13 @@ def MediaObjectsForURL(url):
                         mediaObjects.append(vid)
 
                 return mediaObjects
+                # example json from CHU_PLAYLIST_URL
+                # {
+                #     "chunks": {
+                #         "live": [ { "url": "part1.flv" }, { "url": "part2.flv" } ],
+                #         "480p": [ { "url": "part1.flv" }, { "url": "part2.flv" } ],
+                #     }
+                # }
 
 ####################################################################################################
 @indirect
