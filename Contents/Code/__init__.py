@@ -262,16 +262,22 @@ def ChannelVodsList(channel=None, apiurl=None, broadcasts=True, limit=PAGE_LIMIT
         videos = JSON.ObjectFromURL(apiurl)
 
         for video in videos['videos']:
-                vod_date = Datetime.ParseDate(video['recorded_at'])
-                title    = "{0} - {1}".format(vod_date.strftime('%a %b %d, %Y'), video['title'])
-
-                oc.add(VideoClipObject(
-                        url      = video['url'],
-                        title    = u'%s' % title,
-                        summary  = u'%s' % video['description'],
-                        duration = int(video['length'])*1000,
-                        thumb    = Resource.ContentsOfURLWithFallback(video['preview']),
-                ))
+                url         = video['url']
+                vod_type    = url.split('/')[-2]
+                
+                if vod_type == "v":
+                        vod_date    = Datetime.ParseDate(video['recorded_at'])
+                        title       = "{0} - {1}".format(vod_date.strftime('%a %b %d, %Y'), video['title'])
+                        description = video['description']
+                        length      = int(video['length'])*1000
+                        
+                        oc.add(VideoClipObject(
+                                url      = url,
+                                title    = u'%s' % title,
+                                summary  = u'%s' % description,
+                                duration = length,
+                                thumb    = Resource.ContentsOfURLWithFallback(video['preview']),
+                        ))
 
         if videos['_total'] >= limit:
                 oc.add(NextPageObject(

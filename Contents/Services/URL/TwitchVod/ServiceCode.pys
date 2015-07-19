@@ -68,11 +68,17 @@ def MediaObjectsForURL(url):
                 ]
 
         # vod is in 30min flv segments
-        # slow. I don't know how to properly add the parts with a callback
-        # so a request is made for each item that is listed
+        #
+        # highlights are given as a start time and end time for the given chunks
+        #  I would need to be able to tell plex a position to start and stop playback in order
+        #  to show the highlight.
+        # For now, just compile the chunks together into a big clip and return that.
+        #  (a 20 second highlight video could be 4 hours long when played, but that 20 second
+        #   highlight is contained within that 4 hours)
         else:
                 mediaObjects = []
                 vidChunks = JSON.ObjectFromURL(CHU_PLAYLIST_URL.format(vod_type+vod_id))
+                Log("TWITCH: Playlist -" + str(vidChunks))
                 chunks = vidChunks['chunks']
 
                 for x in xrange(len(Qualities.CHUNK_QUALITIES)):
@@ -84,27 +90,25 @@ def MediaObjectsForURL(url):
                                         audio_codec = AudioCodec.AAC,
                                         video_resolution = Qualities.CHUNK_RESOLUTIONS[quality]
                                 )
+                                start_offset = vidChunks['start_offset']
+                                end_offset   = vidChunks['end_offset']
+
                                 for chunk in chunks[Qualities.CHUNK_QUALITIES[x]]:
-                                        vid.add(PartObject(key=chunk['url']))
+                                        Log("TWITCH: Chunk -" + chunk['url'])
+                                        vid.add(PartObject(key=chunk['url'], duration=int(chunk['length'])*1000))
+
                                 mediaObjects.append(vid)
 
-                # for quality in chunks:
-                #         vid = MediaObject(
-                #                 container = 'flv',
-                #                 video_codec = VideoCodec.H264,
-                #                 audio_codec = AudioCodec.AAC,
-                #                 video_resolution = Qualities.CHUNK_RESOLUTIONS[quality]
-                #         )
-                #         for chunk in chunks[quality]:
-                #                 vid.add(PartObject(key=chunk['url']))
-                #         mediaObjects.append(vid)
 
                 return mediaObjects
                 # example json from CHU_PLAYLIST_URL
                 # {
+                #     "start_offset": 2907,
+                #     "end_offset": 2927,
+                #     "duration": 20,
                 #     "chunks": {
-                #         "live": [ { "url": "part1.flv" }, { "url": "part2.flv" } ],
-                #         "480p": [ { "url": "part1.flv" }, { "url": "part2.flv" } ],
+                #         "live": [ { "length": 1710, "url": "part1.flv" }, { "length": 1710, "url": "part2.flv" } ],
+                #         "480p": [ { "length": 1710, "url": "part1.flv" }, { "length": 1710, "url": "part2.flv" } ],
                 #     }
                 # }
 
