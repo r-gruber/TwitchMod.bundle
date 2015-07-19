@@ -20,7 +20,9 @@ TWITCH_STREAMS_CHANNELS = TWITCH_API_BASE + '/streams?channel={0}'
 TWITCH_CHANNELS         = TWITCH_API_BASE + '/channels/{0}'
 TWITCH_CHANNELS_VODS    = TWITCH_API_BASE + '/channels/{0}/videos'
 
+STREAM_OBJECT_CACHE_TIME    = 0
 FOLLOWED_STREAMS_CACHE_TIME = 5
+
 PAGE_LIMIT = 20
 NAME = 'Twitch'
 
@@ -38,6 +40,7 @@ ICONS = {
 # Shared Functions
 ####################################################################################################
 def ErrorMessage(error, message):
+
         return ObjectContainer(
                 header  = u'%s' % error,
                 message = u'%s' % message, 
@@ -45,13 +48,15 @@ def ErrorMessage(error, message):
 
 # get the streamObjects for the given list of channel names
 # returns a dict, key is stream name, value is the 'stream object' json string
-def GetStreamObjects(channels):
-        streamObjects = {}
-        for channel in channels:
-                streamObjects[channel] = JSON.StringFromObject({})
+def GetStreamObjects(channels, cacheTime=STREAM_OBJECT_CACHE_TIME):
 
-        url     = TWITCH_STREAMS_CHANNELS.format(','.join(channels))
-        streams = JSON.ObjectFromURL(url, cacheTime=FOLLOWED_STREAMS_CACHE_TIME)
+        streamObjects = {}
+
+        try:
+                url     = TWITCH_STREAMS_CHANNELS.format(','.join(channels))
+                streams = JSON.ObjectFromURL(url, cacheTime=cacheTime)
+        except:
+                return streamObjects
 
         for stream in streams['streams']:
                 streamObjects[stream['channel']['name']] = JSON.StringFromObject(stream)
@@ -147,7 +152,7 @@ def ChannelMenu(channelName, refresh=False, streamObject=None):
                 url = TWITCH_STREAMS_CHANNEL.format(channelName)
                 streamObject = JSON.ObjectFromURL(url, cacheTime=0)['stream']
         else:
-                streamObject = JSON.ObjectFromString(streamObject)
+                streamObject = JSON.ObjectFromString(streamObject) if streamObject else None
 
         # Watch Live (streamObject is only true when a channel is Live)
         if streamObject:
@@ -223,16 +228,14 @@ def FollowedStreamsList(apiurl=None, limit=PAGE_LIMIT, username=None):
                 channel_name         = channel['channel']['name']
                 channel_logo         = channel['channel']['logo']
 
-                # format the title
-                title = "{0} - {1}".format(channel_display_name, L('offline'))
-
-                # see if its live, if so change the title
-                streamObject = JSON.ObjectFromString(streamObjects[channel_name])
-                if streamObject:
+                if channel_name in streamObjects:
+                        # live, has a stream object
                         oc.add(DirectoryObjectFromStreamObject(streamObjects[channel_name]))
                 else:
+                        # not live, doesnt have a streamobject, use channel info
+                        title = "{0} - {1}".format(channel_display_name, L('offline'))
                         oc.add(DirectoryObject(
-                                key   = Callback(ChannelMenu, channelName=channel_name, streamObject=streamObjects[channel_name]),
+                                key   = Callback(ChannelMenu, channelName=channel_name),
                                 title = u'%s' % title,
                                 thumb = Resource.ContentsOfURLWithFallback(channel_logo)
                         ))
