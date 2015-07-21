@@ -44,22 +44,39 @@ def MetadataObjectForURL(url):
 ####################################################################################################
 def MediaObjectsForURL(url):
 
-        return [
-                MediaObject(
-                        protocol = 'hls',
-                        container = 'mpegts',
-                        video_codec = VideoCodec.H264,
-                        audio_codec = AudioCodec.AAC,
-                        audio_channels = 2,
-                        optimized_for_streaming = True,
-                        video_resolution = Qualities.HLS_RESOLUTIONS[Qualities.HLS_QUALITIES[x]],
-                        parts = [
-                                PartObject(
-                                        key = Callback(PlayVideo, url=url, quality=x, ext='m3u8')
-                                )
-                        ]
-                ) for x in xrange(len(Qualities.HLS_QUALITIES))
-        ]
+        if Prefs['enable_stream_quality_selection']:
+                return [
+                        MediaObject(
+                                protocol = 'hls',
+                                container = 'mpegts',
+                                video_codec = VideoCodec.H264,
+                                audio_codec = AudioCodec.AAC,
+                                audio_channels = 2,
+                                optimized_for_streaming = True,
+                                video_resolution = Qualities.HLS_RESOLUTIONS[Qualities.HLS_QUALITIES[x]],
+                                parts = [
+                                        PartObject(
+                                                key = Callback(PlayVideo, url=url, quality=x, ext='m3u8')
+                                        )
+                                ]
+                        ) for x in xrange(len(Qualities.HLS_QUALITIES))
+                ]
+        else:
+                return [
+                        MediaObject(
+                                protocol = 'hls',
+                                container = 'mpegts',
+                                video_codec = VideoCodec.H264,
+                                audio_codec = AudioCodec.AAC,
+                                audio_channels = 2,
+                                optimized_for_streaming = True,
+                                parts = [
+                                        PartObject(
+                                                key = Callback(PlayVideo, url=url, ext='m3u8')
+                                        )
+                                ]
+                        )
+                ]
 
 ####################################################################################################
 @indirect
@@ -73,13 +90,15 @@ def PlayVideo(url, quality=0, **kwargs):
         except:
                 raise Ex.MediaNotAvailable
         # get the playlist with the token
-        playlist_url = HLS_PLAYLIST_URL % (user_id, String.Quote(token['token']), String.Quote(token['sig']))
-        # get the playlists contents so we can extract the quality we want
-        playlist_contents = HTTP.Request(playlist_url, cacheTime=0).content
-        # parse the qualities
-        qualities = M3UPlaylist(playlist_contents)
-        Log("TWITCH: + " + str(qualities))
-        # the address to the m3u8 of the quality we want
-        final_url = qualities.getQuality(quality)
+        final_url = HLS_PLAYLIST_URL % (user_id, String.Quote(token['token']), String.Quote(token['sig']))
+
+        if Prefs['enable_stream_quality_selection']:
+                # get the playlists contents so we can extract the quality we want
+                playlist_contents = HTTP.Request(final_url, cacheTime=0).content
+                # parse the qualities
+                qualities = M3UPlaylist(playlist_contents)
+                Log("TWITCH: + " + str(qualities))
+                # the address to the m3u8 of the quality we want
+                final_url = qualities.getQuality(quality)
 
         return IndirectResponse(VideoClipObject, key=HTTPLiveStreamURL(final_url))

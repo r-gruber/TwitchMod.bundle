@@ -1,0 +1,8 @@
+[
+        {
+                "id": "enable_vod_quality_selection",
+                "type": "bool",
+                "label": "Enable VOD Quality Selection",
+                "default": true
+        },
+]

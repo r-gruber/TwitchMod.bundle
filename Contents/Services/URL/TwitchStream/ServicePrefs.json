@@ -1,0 +1,8 @@
+[
+        {
+                "id": "enable_stream_quality_selection",
+                "type": "bool",
+                "label": "Enable Stream Quality Selection",
+                "default": true
+        },
+]
