@@ -1,8 +1,9 @@
 [
         {
-                "id": "enable_vod_quality_selection",
-                "type": "bool",
-                "label": "Enable VOD Quality Selection",
-                "default": true
+                "id": "vod_quality_selection",
+                "type": "enum",
+                "label": "VOD Quality",
+                "values": ["Automatic", "Manual", "Source", "High", "Medium", "Low", "Mobile"],
+                "default": "Manual",
         },
 ]

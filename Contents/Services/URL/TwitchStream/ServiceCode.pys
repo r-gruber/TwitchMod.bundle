@@ -44,7 +44,9 @@ def MetadataObjectForURL(url):
 ####################################################################################################
 def MediaObjectsForURL(url):
 
-        if Prefs['enable_stream_quality_selection']:
+        qualityOption = Prefs['stream_quality_selection']
+
+        if qualityOption == "Manual":
                 return [
                         MediaObject(
                                 protocol = 'hls',
@@ -60,6 +62,23 @@ def MediaObjectsForURL(url):
                                         )
                                 ]
                         ) for x in xrange(len(Qualities.HLS_QUALITIES))
+                ]
+        elif qualityOption in Qualities.HLS_QUALITIES:
+                return [
+                        MediaObject(
+                                protocol = 'hls',
+                                container = 'mpegts',
+                                video_codec = VideoCodec.H264,
+                                audio_codec = AudioCodec.AAC,
+                                audio_channels = 2,
+                                optimized_for_streaming = True,
+                                video_resolution = Qualities.HLS_RESOLUTIONS[qualityOption],
+                                parts = [
+                                        PartObject(
+                                                key = Callback(PlayVideo, url=url, quality=Qualities.HLS_QUALITIES.index(qualityOption), ext='m3u8')
+                                        )
+                                ]
+                        )
                 ]
         else:
                 return [
@@ -80,25 +99,29 @@ def MediaObjectsForURL(url):
 
 ####################################################################################################
 @indirect
-def PlayVideo(url, quality=0, **kwargs):
+def PlayVideo(url, quality=-1, **kwargs):
 
         user_id   = GetUserId(url)
 
         # get a token
         try:
-                token = JSON.ObjectFromURL(HLS_TOKEN_URL % user_id, cacheTime=Defs.TOKEN_TIME)
+                token = JSON.ObjectFromURL(HLS_TOKEN_URL % user_id, cacheTime=0)#Defs.TOKEN_TIME)
         except:
                 raise Ex.MediaNotAvailable
         # get the playlist with the token
         final_url = HLS_PLAYLIST_URL % (user_id, String.Quote(token['token']), String.Quote(token['sig']))
 
-        if Prefs['enable_stream_quality_selection']:
+        #if Prefs['enable_stream_quality_selection']:
+        if quality > -1:
+                Log("TWITCH: Quality > {0}".format(Qualities.HLS_QUALITIES[quality]))
                 # get the playlists contents so we can extract the quality we want
                 playlist_contents = HTTP.Request(final_url, cacheTime=0).content
                 # parse the qualities
                 qualities = M3UPlaylist(playlist_contents)
-                Log("TWITCH: + " + str(qualities))
+                Log("TWITCH: Playlists > " + str(qualities))
                 # the address to the m3u8 of the quality we want
                 final_url = qualities.getQuality(quality)
+
+        Log("TWITCH: Final Url > " + final_url)
 
         return IndirectResponse(VideoClipObject, key=HTTPLiveStreamURL(final_url))

@@ -1,8 +1,9 @@
 [
         {
-                "id": "enable_stream_quality_selection",
-                "type": "bool",
-                "label": "Enable Stream Quality Selection",
-                "default": true
+                "id": "stream_quality_selection",
+                "type": "enum",
+                "label": "Stream Quality",
+                "values": ["Automatic", "Manual", "Source", "High", "Medium", "Low", "Mobile"],
+                "default": "Manual",
         },
 ]
