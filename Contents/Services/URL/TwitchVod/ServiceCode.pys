@@ -62,7 +62,7 @@ def MediaObjectsForURL(url):
                                         video_resolution = Qualities.HLS_RESOLUTIONS[Qualities.HLS_QUALITIES[x]],
                                         parts = [
                                                 PartObject(
-                                                        key = Callback(PlayVideo, url=url, quality=x)
+                                                        key = Callback(PlayVideo, url=url, quality=x, ext='m3u8')
                                                 )
                                         ]
                                 ) for x in xrange(len(Qualities.HLS_QUALITIES))
@@ -78,7 +78,7 @@ def MediaObjectsForURL(url):
                                         optimized_for_streaming = True,
                                         parts = [
                                                 PartObject(
-                                                        key = Callback(PlayVideo, url=url)
+                                                        key = Callback(PlayVideo, url=url, ext='m3u8')
                                                 )
                                         ]
                                 )
