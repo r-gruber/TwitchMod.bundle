@@ -4,7 +4,7 @@ Note:
 Rename Twitch.bundle to something else.
 
 Workaround for the built in twitch url service is to add a '1' before the url
-so '1http://www.twitch.tv/channel' or '1http://www.twitch.tv/v/1234567' will call my services
+so `1http://www.twitch.tv/channel` or `1http://www.twitch.tv/channel/v/1234567` will call my services
 
 License
 -------
