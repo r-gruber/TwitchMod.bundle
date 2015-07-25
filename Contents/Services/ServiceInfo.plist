@@ -8,19 +8,14 @@
                         <dict>
                                 <key>URLPatterns</key>
                                 <array>
-                                        <string>^http://([^.]+.)?twitch.tv/[^/]+/[abcv]/[0-9]+$</string>
-                                </array>
-                                <key>TestURLs</key>
-                                <array>
-                                        <string>http://www.twitch.tv/twitch/c/6055863</string>
-                                        <string>http://www.twitch.tv/previouslyrecorded_live/v/7032424</string>
+                                        <string>^1http://([^.]+.)?twitch.tv/[^/]+/[abcv]/[0-9]+$</string>
                                 </array>
                         </dict>
                         <key>TwitchStream</key>
                         <dict>
                                 <key>URLPatterns</key>
                                 <array>
-                                        <string>^http://www\.twitch\.tv/[^/]+$</string>
+                                        <string>^1http://www\.twitch\.tv/[^/]+$</string>
                                 </array>
                         </dict>
                 </dict>

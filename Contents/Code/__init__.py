@@ -24,7 +24,8 @@ STREAM_OBJECT_CACHE_TIME    = 0
 FOLLOWED_STREAMS_CACHE_TIME = 5
 
 PAGE_LIMIT = 20
-NAME = 'Twitch'
+NAME = 'TwitchMod'
+PATH = '/video/twitchmod'
 
 ICONS = {
         'search':    R('ic_search_c.png'),
@@ -99,7 +100,7 @@ def Start():
 	HTTP.CacheTime = 300
 
 ####################################################################################################
-@handler('/video/twitch', NAME)
+@handler(PATH, NAME)
 def MainMenu():
 
 	oc = ObjectContainer()
@@ -142,7 +143,7 @@ def MainMenu():
 
 ####################################################################################################
 # a request is only made if refresh is True, otherwise assume that the passed streamObject is valid
-@route('video/twitch/channel/menu')
+@route(PATH + '/channel/menu')
 def ChannelMenu(channelName, refresh=False, streamObject=None):
         
         oc = ObjectContainer(title2=channelName)
@@ -166,7 +167,7 @@ def ChannelMenu(channelName, refresh=False, streamObject=None):
                 summary = '{0}\n{1}'.format(viewersString, status)
 
                 oc.add(VideoClipObject(
-                        url     = streamObject['channel']['url'],
+                        url     = "1" + streamObject['channel']['url'],
                         title   = u'%s' % title,
                         summary = u'%s' % summary,
                         thumb   = Resource.ContentsOfURLWithFallback(streamObject['preview']['medium'])
@@ -192,7 +193,7 @@ def ChannelMenu(channelName, refresh=False, streamObject=None):
 # Two requests are made in this route
 # 1. get a list of 'follow' objects, which contains the information for the channels
 # 2. get a list of 'stream' objects, which contains info about the stream if its live
-@route('/video/twitch/following')
+@route(PATH + '/following')
 def FollowedStreamsList(apiurl=None, limit=PAGE_LIMIT, username=None):
 
         oc = ObjectContainer(title2=L('followed_streams'))
@@ -250,7 +251,7 @@ def FollowedStreamsList(apiurl=None, limit=PAGE_LIMIT, username=None):
         return oc
 
 ####################################################################################################
-@route('/video/twitch/channel/vods')
+@route(PATH + '/channel/vods')
 def ChannelVodsList(channel=None, apiurl=None, broadcasts=True, limit=PAGE_LIMIT):
      
         oc = ObjectContainer(title2=L('past_broadcasts') if broadcasts else L('highlights'))
@@ -272,7 +273,7 @@ def ChannelVodsList(channel=None, apiurl=None, broadcasts=True, limit=PAGE_LIMIT
                         length      = int(video['length'])*1000
                         
                         oc.add(VideoClipObject(
-                                url      = url,
+                                url      = "1" + url,
                                 title    = u'%s' % title,
                                 summary  = u'%s' % description,
                                 duration = length,
@@ -289,7 +290,7 @@ def ChannelVodsList(channel=None, apiurl=None, broadcasts=True, limit=PAGE_LIMIT
         return oc
 
 ####################################################################################################
-@route('/video/twitch/featured')
+@route(PATH + '/featured')
 def FeaturedStreamsList(apiurl=None, limit=PAGE_LIMIT):
 
 	oc = ObjectContainer(title2=L('featured_streams'), no_cache=True)
@@ -313,7 +314,7 @@ def FeaturedStreamsList(apiurl=None, limit=PAGE_LIMIT):
 	return oc
 
 ####################################################################################################
-@route('/video/twitch/games')
+@route(PATH + '/games')
 def TopGamesList(apiurl=None, limit=PAGE_LIMIT):
 
 	oc = ObjectContainer(title2=L('top_games'), no_cache=True)
@@ -345,7 +346,7 @@ def TopGamesList(apiurl=None, limit=PAGE_LIMIT):
 	return oc
 
 ####################################################################################################
-@route('/video/twitch/channel')
+@route(PATH + '/channel')
 def ChannelsForGameList(game, apiurl=None, limit=PAGE_LIMIT):
 
 	oc = ObjectContainer(title2=game, no_cache=True)
@@ -369,7 +370,7 @@ def ChannelsForGameList(game, apiurl=None, limit=PAGE_LIMIT):
 	return oc
 
 ####################################################################################################
-@route('/video/twitch/search')
+@route(PATH + '/search')
 def SearchResults(query='', limit=PAGE_LIMIT):
 
 	oc = ObjectContainer(title2=L('search'), no_cache=True)

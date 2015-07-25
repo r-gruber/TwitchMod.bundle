@@ -1,10 +1,10 @@
 Note:
 -----
-I'm redefining the Twitch.tv URL service that's located in:
 
-"%PMS_DIR%\Plug-ins\Services.bundle\Contents\Service Sets\com.plexapp.plugins.twitchtv"
+Rename Twitch.bundle to something else.
 
-So delete that so the plugin will use its own.
+Workaround for the built in twitch url service is to add a '1' before the url
+so '1http://www.twitch.tv/channel' or '1http://www.twitch.tv/v/1234567' will call my services
 
 License
 -------
