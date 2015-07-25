@@ -106,7 +106,7 @@ def Start():
 @handler(PATH, NAME)
 def MainMenu():
 
-	oc = ObjectContainer(no_cache=True)
+	oc = ObjectContainer(no_cache=True, replace_parent=False)
 
 	oc.add(DirectoryObject(
                 key   = Callback(FeaturedStreamsList),
@@ -129,30 +129,34 @@ def MainMenu():
                 thumb   = ICONS['search'],
         ))
 
+        # Usernames
         for username in Dict['usernames']:
                 oc.add(DirectoryObject(
                         key   = Callback(FollowedStreamsList, username=username),
                         title = u'%s\'s %s' % (username, L('followed_streams')),
                         thumb = ICONS['following'],
                 ))
-
+        # add
         oc.add(InputDirectoryObject(
                 key   = Callback(AddUsername),
                 title = u'%s' % L('add_username'),
                 thumb = ICONS['settings'],
         ))
-        oc.add(DirectoryObject(
-                key   = Callback(ListUsernames),
-                title = u'%s' % L('remove_username'),
-                thumb = ICONS['settings'],
-        ))
+        # remove
+        if Dict['usernames']:
+                oc.add(DirectoryObject(
+                        key   = Callback(ListUsernames),
+                        title = u'%s' % L('remove_username'),
+                        thumb = ICONS['settings'],
+                ))                
 
-        oc.add(PrefsObject(
-                title   = u'%s' % L('Preferences'),
-                tagline = u'%s' % L('Preferences'),
-                summary = u'%s' % L('Preferences'),
-                thumb   = ICONS['settings'],
-        ))
+        if Client.Platform == "Plex Home Theater":
+                oc.add(PrefsObject(
+                        title   = u'%s' % L('Preferences'),
+                        tagline = u'%s' % L('Preferences'),
+                        summary = u'%s' % L('Preferences'),
+                        thumb   = ICONS['settings'],
+                ))
 
 	return oc
 
@@ -171,9 +175,9 @@ def AddUsername(query=""):
         return FollowedStreamsList(username=query)
 
 @route(PATH + '/listusernames')
-def ListUsernames():
+def ListUsernames(replace_parent=False):
 
-        oc = ObjectContainer()
+        oc = ObjectContainer(no_cache=True, no_history=True, replace_parent=replace_parent)
 
         usernames = Dict['usernames']
 
@@ -195,7 +199,7 @@ def RemoveUsername(username):
                 Dict['usernames'] = usernames
                 Dict.Save()
 
-        return ErrorMessage(error=L('remove_username'), message=username)
+        return ListUsernames(replace_parent=True)#ErrorMessage(error=L('remove_username'), message=username)
 
 ####################################################################################################
 # a request is only made if refresh is True, otherwise assume that the passed streamObject is valid
