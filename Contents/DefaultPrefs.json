@@ -1,8 +1,0 @@
-[
-        {
-                "id":           "username",
-                "label":        "Username",
-                "type":         "text",
-                "default":      "",
-        },
-]
