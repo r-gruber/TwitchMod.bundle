@@ -6,4 +6,11 @@
                 "values": ["Automatic", "Manual", "Source", "High", "Medium", "Low", "Mobile"],
                 "default": "Manual",
         },
+        {
+                "id": "vod_quality_selection",
+                "type": "enum",
+                "label": "VOD Quality",
+                "values": ["Automatic", "Manual", "Source", "High", "Medium", "Low", "Mobile"],
+                "default": "Manual",
+        },
 ]
