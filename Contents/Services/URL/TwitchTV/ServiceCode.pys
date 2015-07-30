@@ -140,7 +140,7 @@ def MediaObjectsForURL(url):
 def PlayHLS(url, quality=-1, **kwargs):
 
         if IsStream(url):
-                user_id   = GetUserId(url)
+                user_id = GetUserId(url)
                 # get a token
                 try:
                         token = JSON.ObjectFromURL(HLS_TOKEN_URL.format(channel_name=user_id), cacheTime=TOKEN_CACHE_TIME)
