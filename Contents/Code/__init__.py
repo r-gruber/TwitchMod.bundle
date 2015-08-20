@@ -169,13 +169,12 @@ def MainMenu():
                         thumb = ICONS['settings'],
                 ))                
 
-        if Client.Platform == "Plex Home Theater":
-                oc.add(PrefsObject(
-                        title   = u'%s' % L('Preferences'),
-                        tagline = u'%s' % L('Preferences'),
-                        summary = u'%s' % L('Preferences'),
-                        thumb   = ICONS['settings'],
-                ))
+        oc.add(PrefsObject(
+                title   = u'%s' % L('Preferences'),
+                tagline = u'%s' % L('Preferences'),
+                summary = u'%s' % L('Preferences'),
+                thumb   = ICONS['settings'],
+        ))
 
         return oc
 
