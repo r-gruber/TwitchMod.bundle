@@ -4,13 +4,13 @@
                 "type": "enum",
                 "label": "Stream Quality",
                 "values": ["Automatic", "Manual", "Source", "High", "Medium", "Low", "Mobile"],
-                "default": "Manual",
+                "default": "Automatic",
         },
         {
                 "id": "vod_quality_selection",
                 "type": "enum",
                 "label": "VOD Quality",
                 "values": ["Manual", "Source", "High", "Medium", "Low", "Mobile"],
-                "default": "Manual",
+                "default": "Automatic",
         },
 ]

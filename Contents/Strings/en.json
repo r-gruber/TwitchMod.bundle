@@ -20,5 +20,6 @@
         "search_error": "The search returned 0 results.",
         "add_username": "Add Username",
         "remove_username": "Remove Username",
-        "remove": "Remove"
+        "remove": "Remove",
+        "username": "Username"
 }
