@@ -149,7 +149,7 @@ def PlayHLS(url, quality=-1, **kwargs):
                 # get the playlist with the token
                 final_url = HLS_PLAYLIST_URL.format(channel_name=user_id, token=String.Quote(token['token']), sig=String.Quote(token['sig']))
 
-        else:
+        elif IsVod(url):
                 vod_id   = GetVodId(url)
                 vod_type = GetVodType(url)
                 # get a token
@@ -159,6 +159,8 @@ def PlayHLS(url, quality=-1, **kwargs):
                         raise Ex.MediaNotAvailable
                 # get the playlist with the token
                 final_url = VOD_PLAYLIST_URL.format(vod_id=vod_id, token=String.Quote(token['token']), sig=String.Quote(token['sig']))
+        else:
+                raise Ex.MediaNotAvailable
 
         if quality > -1:
                 Log("TWITCH: Quality = [{0}]{1}".format(quality, HLS_QUALITIES[quality]))

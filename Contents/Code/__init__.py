@@ -148,26 +148,11 @@ def MainMenu():
                 thumb   = ICONS['search'],
         ))
 
-        # Usernames
-        for username in Dict['usernames']:
-                oc.add(DirectoryObject(
-                        key   = Callback(FollowedStreamsList, query=username),
-                        title = u'%s\'s %s' % (username, L('followed_streams')),
-                        thumb = ICONS['following'],
-                ))
-        # add
-        oc.add(InputDirectoryObject(
+        oc.add(DirectoryObject(
                 key   = Callback(FollowedStreamsList),
-                title = u'%s' % L('add_username'),
-                thumb = ICONS['settings'],
-        ))
-        # remove
-        if Dict['usernames']:
-                oc.add(DirectoryObject(
-                        key   = Callback(ListUsernames),
-                        title = u'%s' % L('remove_username'),
-                        thumb = ICONS['settings'],
-                ))                
+                title = u'%s' % (L('followed_streams')),
+                thumb = ICONS['following'],
+        ))            
 
         oc.add(PrefsObject(
                 title   = u'%s' % L('Preferences'),
@@ -177,37 +162,6 @@ def MainMenu():
         ))
 
         return oc
-
-####################################################################################################
-# Username management
-####################################################################################################
-def AddUsername(username):
-
-        Dict['usernames'].append(username)
-        Dict.Save()
-
-@route(PATH + '/usernames/list', replace_parent=bool)
-def ListUsernames(replace_parent=False):
-
-        oc = ObjectContainer(no_cache=True, no_history=True, replace_parent=replace_parent)
-
-        for username in Dict['usernames']:
-                oc.add(DirectoryObject(
-                        key   = Callback(RemoveUsername, username=username),
-                        title = u'%s: %s' % (L('remove'), username),
-                        thumb = ICONS['settings']
-                ))
-
-        return oc
-
-@route(PATH + '/usernames/remove')
-def RemoveUsername(username):
-
-        if username in Dict['usernames']:
-                Dict['usernames'].remove(username)
-                Dict.Save()
-
-        return ListUsernames(replace_parent=True)
 
 ####################################################################################################
 @route(PATH + '/channel/{channelName}/menu', refresh=bool, streamObject=dict)
@@ -259,9 +213,11 @@ def ChannelMenu(channelName, refresh=True, streamObject=None):
 # 1. get a list of 'follow' objects, which contains the information for the channels
 # 2. get a list of 'stream' objects, which contains info about the stream if its live
 @route(PATH + '/following', limit=int)
-def FollowedStreamsList(query, apiurl=None, limit=PAGE_LIMIT):
+def FollowedStreamsList(apiurl=None, limit=PAGE_LIMIT):
 
         oc = ObjectContainer(title2=L('followed_streams'))
+
+        query = Prefs['username']
 
         # twitch apis provide the 'next' urls for paging, so we only need to construct ours once
         if not apiurl:
@@ -300,7 +256,7 @@ def FollowedStreamsList(query, apiurl=None, limit=PAGE_LIMIT):
 
         if len(oc) >= limit:
                 oc.add(NextPageObject(
-                        key   = Callback(FollowedStreamsList, query=query, apiurl=following['_links']['next'], limit=limit),
+                        key   = Callback(FollowedStreamsList, apiurl=following['_links']['next'], limit=limit),
                         title = u'%s' % L('more'),
                         thumb = ICONS['more'],
                 ))

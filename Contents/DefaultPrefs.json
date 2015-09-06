@@ -1,0 +1,7 @@
+[
+        {
+                "id":           "username",
+                "label":        "username",
+                "type":         "text",
+        }
+]
