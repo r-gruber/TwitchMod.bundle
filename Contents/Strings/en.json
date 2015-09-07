@@ -19,5 +19,6 @@
         "offline": "OFFLINE",
         "followed_streams_list_error": "Error getting the list of followed streams.",
         "search_error": "The search returned 0 results.",
-        "username": "Username"
+        "username": "Username",
+        "top_streams": "Top Streams"
 }

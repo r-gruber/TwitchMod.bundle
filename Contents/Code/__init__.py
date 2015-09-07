@@ -131,6 +131,12 @@ def MainMenu():
         ))
 
         oc.add(DirectoryObject(
+                key   = Callback(TopStreamsList),
+                title = u'%s' % L('top_streams'),
+                thumb = ICONS['channels'],
+        ))
+
+        oc.add(DirectoryObject(
                 key     = Callback(TopGamesList),
                 title   = u'%s' % L('games'),
                 summary = u'%s' % L('browse_summary'),
@@ -289,6 +295,30 @@ def ChannelVodsList(channel=None, apiurl=None, broadcasts=True, limit=PAGE_LIMIT
         if len(oc) >= limit:
                 oc.add(NextPageObject(
                         key   = Callback(ChannelVodsList, apiurl=videos['_links']['next'], broadcasts=broadcasts, limit=limit),
+                        title = u'%s' % L('more'),
+                        thumb = ICONS['more'],
+                ))
+
+        return oc
+
+####################################################################################################
+@route(PATH + '/topstreams', limit=int)
+def TopStreamsList(apiurl=None, limit=PAGE_LIMIT):
+        oc = ObjectContainer(title2=L('top_streams'), no_cache=True)
+
+        if not apiurl:
+               params = "?limit={0}".format(limit)
+               apiurl = TWITCH_STREAMS + params
+
+        top = JSON.ObjectFromURL(apiurl)
+
+        for stream in top['streams']:
+                oc.add(DirectoryObjectFromStreamObject(stream))
+
+        # featured streams doesnt provide a total
+        if len(oc) >= limit:
+                oc.add(NextPageObject(
+                        key   = Callback(TopStreamsList, apiurl=top['_links']['next']),
                         title = u'%s' % L('more'),
                         thumb = ICONS['more'],
                 ))
