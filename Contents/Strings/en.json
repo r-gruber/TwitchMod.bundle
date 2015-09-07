@@ -2,6 +2,7 @@
         "preferences": "Preferences",
         "featured_streams": "Featured Streams",
         "followed_streams": "Followed Streams",
+        "followed_channels": "Followed Channels",
         "top_games": "Top Games",
         "games": "Games",
         "search": "Search",
@@ -18,7 +19,5 @@
         "offline": "OFFLINE",
         "followed_streams_list_error": "Error getting the list of followed streams.",
         "search_error": "The search returned 0 results.",
-        "add_username": "Add Username",
-        "remove_username": "Remove Username",
-        "remove": "Remove"
+        "username": "Username"
 }

@@ -118,10 +118,6 @@ def Start():
         HTTP.Headers['Accept']     = TWITCH_API_MIME_TYPE
         HTTP.CacheTime = 300
 
-        if not 'usernames' in Dict:
-                Dict['usernames'] = []
-                Dict.Save()
-
 ####################################################################################################
 @handler(PATH, NAME)
 def MainMenu():
@@ -150,7 +146,7 @@ def MainMenu():
 
         oc.add(DirectoryObject(
                 key   = Callback(FollowedStreamsList),
-                title = u'%s' % (L('followed_streams')),
+                title = u'%s' % (L('followed_channels')),
                 thumb = ICONS['following'],
         ))            
 
@@ -215,23 +211,20 @@ def ChannelMenu(channelName, refresh=True, streamObject=None):
 @route(PATH + '/following', limit=int)
 def FollowedStreamsList(apiurl=None, limit=PAGE_LIMIT):
 
-        oc = ObjectContainer(title2=L('followed_streams'))
+        oc = ObjectContainer(title2=L('followed_channels'))
 
-        query = Prefs['username']
+        username = Prefs['username']
 
         # twitch apis provide the 'next' urls for paging, so we only need to construct ours once
         if not apiurl:
                 params = "?limit={0}".format(limit)
-                apiurl = TWITCH_FOLLOWED_STREAMS.format(query) + params
+                apiurl = TWITCH_FOLLOWED_STREAMS.format(username) + params
 
         # get a list of follows objects
         try:
                 following = JSON.ObjectFromURL(apiurl, cacheTime=0)
         except:
-                return ErrorMessage(L('followed_streams'), L('followed_streams_list_error'))
-
-        if not query in Dict['usernames']:
-                AddUsername(username=query)                
+                return ErrorMessage(L('followed_channels'), L('followed_streams_list_error'))            
 
         # gather all the channel names that the user is following
         followed_channels = []
