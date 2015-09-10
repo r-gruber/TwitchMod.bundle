@@ -46,7 +46,10 @@ def MetadataObjectForURL(url):
                 game         = video['stream']['channel']['game']   if 'game'   in video['stream']['channel'] else '?'
                 status       = video['stream']['channel']['status'] if 'status' in video['stream']['channel'] else '?'
                 viewers      = video['stream']['viewers']
-                thumb        = video['stream']['preview']['large']
+                # dumb hack to make the thumbnail only valid for ~100 seconds
+                time         = "%d" % Datetime.TimestampFromDatetime(Datetime.Now()) # str() doesnt work correctly?
+                thumb        = "%s#%s00" % (video['stream']['preview']['large'], time[:-2])
+                Log("TWITCH: %s %s" %(time, thumb))
 
                 return VideoClipObject(
                         title   = u'%s - %s' % (display_name, game),

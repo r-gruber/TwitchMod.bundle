@@ -23,7 +23,6 @@ TWITCH_STREAMS_CHANNEL  = TWITCH_API_BASE + '/streams/{0}'
 TWITCH_STREAMS_CHANNELS = TWITCH_API_BASE + '/streams?channel={0}'
 TWITCH_CHANNELS         = TWITCH_API_BASE + '/channels/{0}'
 TWITCH_CHANNELS_VODS    = TWITCH_API_BASE + '/channels/{0}/videos'
-TWITCH_TEAMS            = TWITCH_API_BASE + '/teams' # unused
 
 PAGE_LIMIT = 20
 NAME = 'TwitchMod'
@@ -49,6 +48,21 @@ def ErrorMessage(error, message):
                 message = u'%s' % message, 
         )
 
+# workaround to keep preview images fresh. If the URL to the image for a thumb is different, it will reload it.
+# so this appends a "#" and a timestamp. the timestamp will change if 2 minutes have passed since the last time.
+def GetPreviewImage(url, cacheTime=120):
+
+        now = Datetime.TimestampFromDatetime(Datetime.Now())
+
+        if 'last_update' not in Dict:
+                Dict['last_update'] = 0
+
+        if now - Dict['last_update'] > cacheTime:
+                Dict['last_update'] = now
+                Dict.Save()
+
+        return "%s#%d" % (url,Dict['last_update'])
+
 # get the streamObjects for the given list of channel names
 # returns a dict, key is stream name, value is the 'stream object' json string
 def GetStreamObjects(channels, cacheTime=0):
@@ -73,24 +87,18 @@ def DirectoryObjectFromStreamObject(streamObject):
         display_name = streamObject['channel']['display_name']
         status       = streamObject['channel']['status'] if 'status' in streamObject['channel'] else '?'
         logo_img     = streamObject['channel']['logo']
-        preview_img  = streamObject['preview']['medium']
+        preview_img  = GetPreviewImage(streamObject['preview']['medium'])
+        viewers      = "{:,}".format(int(streamObject['viewers']))
 
-        viewers       = "{:,}".format(int(streamObject['viewers']))
         viewersString = "{0} {1}".format(viewers, L('viewers'))
-
-        metadata = {}
-        metadata['name']         = name
-        metadata['display_name'] = display_name
-        metadata['title']        = "{0} - {1} - {2}".format(display_name, viewersString, status)
-        metadata['summary']      = "{0}\n\n{1}".format(viewersString, status)
-        metadata['logo']         = logo_img
-        metadata['preview']      = preview_img
+        title         = "{0} - {1} - {2}".format(display_name, viewersString, status)
+        summary       = "{0}\n\n{1}".format(viewersString, status)
 
         return DirectoryObject(
-                key     = Callback(ChannelMenu, channelName=metadata['name'], streamObject=streamObject),
-                title   = u'%s' % metadata['title'],
-                summary = u'%s' % metadata['summary'],
-                thumb   = Resource.ContentsOfURLWithFallback(metadata['logo'])
+                key     = Callback(ChannelMenu, channelName=name, streamObject=streamObject),
+                title   = u'%s' % title,
+                summary = u'%s' % summary,
+                thumb   = Resource.ContentsOfURLWithFallback(preview_img)
         )
 
 def DirectoryObjectFromChannelObject(channelObject, offline=False):
@@ -116,7 +124,11 @@ def Start():
 
         HTTP.Headers['User-Agent'] = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.117 Safari/537.36'
         HTTP.Headers['Accept']     = TWITCH_API_MIME_TYPE
-        HTTP.CacheTime = 300
+        HTTP.CacheTime = CACHE_1MINUTE
+
+        if 'last_update' not in Dict:
+                Dict['last_update'] = 0
+                Dict.Save()
 
 ####################################################################################################
 @handler(PATH, NAME)
@@ -151,7 +163,7 @@ def MainMenu():
         ))
 
         oc.add(DirectoryObject(
-                key   = Callback(FollowedStreamsList),
+                key   = Callback(FollowedChannelsList),
                 title = u'%s' % (L('followed_channels')),
                 thumb = ICONS['following'],
         ))            
@@ -186,12 +198,13 @@ def ChannelMenu(channelName, refresh=True, streamObject=None):
                 status  = streamObject['channel']['status'] if 'status' in streamObject['channel'] else ''
                 title   = "{0} - {1} - {2}".format(L('watch_stream'), viewersString, status)
                 summary = '{0}\n{1}'.format(viewersString, status)
+                preview_img = GetPreviewImage(streamObject['preview']['medium'])
 
                 oc.add(VideoClipObject(
                         url     = "1" + streamObject['channel']['url'],
                         title   = u'%s' % title,
                         summary = u'%s' % summary,
-                        thumb   = Resource.ContentsOfURLWithFallback(streamObject['preview']['medium'])
+                        thumb   = Resource.ContentsOfURLWithFallback(preview_img)
                 ))
 
         # List Highlights
@@ -215,7 +228,7 @@ def ChannelMenu(channelName, refresh=True, streamObject=None):
 # 1. get a list of 'follow' objects, which contains the information for the channels
 # 2. get a list of 'stream' objects, which contains info about the stream if its live
 @route(PATH + '/following', limit=int)
-def FollowedStreamsList(apiurl=None, limit=PAGE_LIMIT):
+def FollowedChannelsList(apiurl=None, limit=PAGE_LIMIT):
 
         oc = ObjectContainer(title2=L('followed_channels'))
 
@@ -255,7 +268,7 @@ def FollowedStreamsList(apiurl=None, limit=PAGE_LIMIT):
 
         if len(oc) >= limit:
                 oc.add(NextPageObject(
-                        key   = Callback(FollowedStreamsList, apiurl=following['_links']['next'], limit=limit),
+                        key   = Callback(FollowedChannelsList, apiurl=following['_links']['next'], limit=limit),
                         title = u'%s' % L('more'),
                         thumb = ICONS['more'],
                 ))
@@ -283,7 +296,7 @@ def ChannelVodsList(channel=None, apiurl=None, broadcasts=True, limit=PAGE_LIMIT
                         title       = "{0} - {1}".format(vod_date.strftime('%a %b %d, %Y'), video['title'])
                         description = video['description']
                         length      = int(video['length']) * 1000
-                        
+
                         oc.add(VideoClipObject(
                                 url      = "1" + url,
                                 title    = u'%s' % title,
