@@ -29,7 +29,7 @@ NAME = 'TwitchMod'
 PATH = '/video/twitchmod'
 
 ICONS = {
-        'search':    R('art-default.jpg'),
+        'art':       R('art-default.jpg'),
         'search':    R('ic_search_c.png'),
         'following': R('ic_following_c.png'),
         'games':     R('ic_games_c.png'),
@@ -135,7 +135,7 @@ def Start():
                 Dict.Save()
 
 ####################################################################################################
-@handler(PATH, NAME)
+@handler(PATH, NAME, art=ICONS['art'])
 def MainMenu():
 
         oc = ObjectContainer(no_cache=True, replace_parent=False)
