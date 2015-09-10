@@ -3,5 +3,12 @@
                 "id":           "username",
                 "label":        "username",
                 "type":         "text",
+        },
+        {
+                "id":           "following_order",
+                "label":        "following_order",
+                "type":         "enum",
+                "values":       ["name", "view_count"],
+                "default":      "view_count",
         }
 ]

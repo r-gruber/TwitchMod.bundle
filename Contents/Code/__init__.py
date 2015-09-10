@@ -98,7 +98,8 @@ def DirectoryObjectFromStreamObject(streamObject):
                 key     = Callback(ChannelMenu, channelName=name, streamObject=streamObject),
                 title   = u'%s' % title,
                 summary = u'%s' % summary,
-                thumb   = Resource.ContentsOfURLWithFallback(preview_img)
+                tagline = '%s,%d' % (display_name, streamObject['viewers']),
+                thumb   = Resource.ContentsOfURLWithFallback(preview_img, fallback=ICONS['videos'])
         )
 
 def DirectoryObjectFromChannelObject(channelObject, offline=False):
@@ -114,7 +115,8 @@ def DirectoryObjectFromChannelObject(channelObject, offline=False):
                 key     = Callback(ChannelMenu, channelName=name),
                 title   = u'%s' % title,
                 summary = u'%s' % status,
-                thumb   = Resource.ContentsOfURLWithFallback(logo_img)
+                tagline = '%s,0' % display_name,
+                thumb   = Resource.ContentsOfURLWithFallback(logo_img, fallback=ICONS['videos'])
         )
 
 ####################################################################################################
@@ -204,7 +206,7 @@ def ChannelMenu(channelName, refresh=True, streamObject=None):
                         url     = "1" + streamObject['channel']['url'],
                         title   = u'%s' % title,
                         summary = u'%s' % summary,
-                        thumb   = Resource.ContentsOfURLWithFallback(preview_img)
+                        thumb   = Resource.ContentsOfURLWithFallback(preview_img, fallback=ICONS['videos'])
                 ))
 
         # List Highlights
@@ -228,7 +230,7 @@ def ChannelMenu(channelName, refresh=True, streamObject=None):
 # 1. get a list of 'follow' objects, which contains the information for the channels
 # 2. get a list of 'stream' objects, which contains info about the stream if its live
 @route(PATH + '/following', limit=int)
-def FollowedChannelsList(apiurl=None, limit=PAGE_LIMIT):
+def FollowedChannelsList(apiurl=None, limit=100):
 
         oc = ObjectContainer(title2=L('followed_channels'))
 
@@ -236,7 +238,7 @@ def FollowedChannelsList(apiurl=None, limit=PAGE_LIMIT):
 
         # twitch apis provide the 'next' urls for paging, so we only need to construct ours once
         if not apiurl:
-                params = "?limit={0}".format(limit)
+                params = "?limit={0}&sortby=last_broadcast&direction=desc".format(limit)
                 apiurl = TWITCH_FOLLOWED_STREAMS.format(username) + params
 
         # get a list of follows objects
@@ -265,6 +267,14 @@ def FollowedChannelsList(apiurl=None, limit=PAGE_LIMIT):
                 else:
                         # not live, doesnt have a streamobject, use channel info
                         oc.add(DirectoryObjectFromChannelObject(channelObject, offline=True))
+
+        # Sort the items
+        if Prefs['following_order'] == 'view_count':
+                # viewers desc
+                oc.objects.sort(key=lambda obj: int(obj.tagline.split(',')[-1]), reverse=True)
+        else:
+                # name asc
+                oc.objects.sort(key=lambda obj: obj.tagline.split(',')[0], reverse=False)
 
         if len(oc) >= limit:
                 oc.add(NextPageObject(
@@ -302,7 +312,7 @@ def ChannelVodsList(channel=None, apiurl=None, broadcasts=True, limit=PAGE_LIMIT
                                 title    = u'%s' % title,
                                 summary  = u'%s' % description,
                                 duration = length,
-                                thumb    = Resource.ContentsOfURLWithFallback(video['preview']),
+                                thumb    = Resource.ContentsOfURLWithFallback(video['preview'], fallback=ICONS['videos']),
                         ))
 
         if len(oc) >= limit:
@@ -385,7 +395,7 @@ def TopGamesList(apiurl=None, limit=PAGE_LIMIT):
                         key     = Callback(ChannelsForGameList, game=game_name),
                         title   = u'%s' % game_name,
                         summary = u'%s' % game_summary,
-                        thumb   = Resource.ContentsOfURLWithFallback(thumb),
+                        thumb   = Resource.ContentsOfURLWithFallback(thumb, fallback=ICONS['videos']),
                 ))
 
         if len(oc) >= limit:
@@ -518,7 +528,7 @@ def SearchGames(query, apiurl=None):
                 oc.add(DirectoryObject(
                         key   = Callback(ChannelsForGameList, game=game['name']),
                         title = u'%s' % game['name'],
-                        thumb = Resource.ContentsOfURLWithFallback(game['box']['medium']),
+                        thumb = Resource.ContentsOfURLWithFallback(game['box']['medium'], fallback=ICONS['videos']),
                 ))
 
         if len(oc) < 1:

@@ -20,5 +20,8 @@
         "followed_streams_list_error": "Error getting the list of followed streams.",
         "search_error": "The search returned 0 results.",
         "username": "Username",
-        "top_streams": "Top Streams"
+        "top_streams": "Top Streams",
+        "following_order": "Order Following By",
+        "name": "Name",
+        "view_count": "View Count",
 }
