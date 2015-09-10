@@ -29,6 +29,7 @@ NAME = 'TwitchMod'
 PATH = '/video/twitchmod'
 
 ICONS = {
+        'art':       R('art-default.jpg'),
         'search':    R('ic_search_c.png'),
         'following': R('ic_following_c.png'),
         'games':     R('ic_games_c.png'),
@@ -123,7 +124,8 @@ def DirectoryObjectFromChannelObject(channelObject, offline=False):
 def Start():
 
         ObjectContainer.title1 = NAME
-
+        ObjectContainer.art    = ICONS['art']
+        
         HTTP.Headers['User-Agent'] = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.117 Safari/537.36'
         HTTP.Headers['Accept']     = TWITCH_API_MIME_TYPE
         HTTP.CacheTime = CACHE_1MINUTE
@@ -133,7 +135,7 @@ def Start():
                 Dict.Save()
 
 ####################################################################################################
-@handler(PATH, NAME)
+@handler(PATH, NAME, art=ICONS['art'])
 def MainMenu():
 
         oc = ObjectContainer(no_cache=True, replace_parent=False)

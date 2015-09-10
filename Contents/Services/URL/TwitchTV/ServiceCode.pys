@@ -233,7 +233,7 @@ class M3UPlaylist(object):
 
                 if HLS_QUALITIES[QualityInt] in self.playlist:
                         #selected quality is available
-                        Log("TWITCH: Quality is available - %s" % self.playlist[HLS_QUALITIES[QualityInt])
+                        Log("TWITCH: Quality is available - %s" % self.playlist[HLS_QUALITIES[QualityInt]])
                         return self.playlist[HLS_QUALITIES[QualityInt]]
                 else:
                         #not available, start with worst quality and improve
