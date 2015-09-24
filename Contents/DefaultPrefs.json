@@ -10,5 +10,10 @@
                 "type":         "enum",
                 "values":       ["name", "view_count"],
                 "default":      "view_count",
+        },
+        {
+                "id":           "favourite_games",
+                "label":        "favourite_games_p",
+                "type":         "text",
         }
 ]

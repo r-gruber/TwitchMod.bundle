@@ -170,7 +170,14 @@ def MainMenu():
                 key   = Callback(FollowedChannelsList),
                 title = u'%s' % (L('followed_channels')),
                 thumb = ICONS['following'],
-        ))            
+        ))
+
+        if Prefs['favourite_games']:
+                oc.add(DirectoryObject(
+                        key   = Callback(FavGames),
+                        title = u'%s' % (L('favourite_games')),
+                        thumb = ICONS['following'],
+                ))       
 
         oc.add(PrefsObject(
                 title   = u'%s' % L('Preferences'),
@@ -178,6 +185,26 @@ def MainMenu():
                 summary = u'%s' % L('Preferences'),
                 thumb   = ICONS['settings'],
         ))
+
+        return oc
+
+####################################################################################################
+@route(PATH + '/favourite/games')
+def FavGames():
+
+        oc = ObjectContainer()
+
+        try:
+                games = Prefs['favourite_games'].split(',')
+        except:
+                games = []
+
+        for game in games:
+                oc.add(DirectoryObject(
+                        key = Callback(SearchStreams, query=game.strip()),
+                        title = u'%s' % game,
+                        thumb = ICONS['games']
+                ))
 
         return oc
 

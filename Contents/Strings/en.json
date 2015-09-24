@@ -24,4 +24,6 @@
         "following_order": "Order Following By",
         "name": "Name",
         "view_count": "View Count",
+        "favourite_games": "Favorite Games",
+        "favourite_games_p": "Favorite Games (Comma Separated)"
 }
