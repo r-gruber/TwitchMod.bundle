@@ -82,18 +82,36 @@ def GetStreamObjects(channels, cacheTime=0):
         return streamObjects
 
 # given a streamObject (dict), return a DirectoryObject
-def DirectoryObjectFromStreamObject(streamObject):
+# titleLayout is a comma separated string. possible items are the contents of title_elements
+def DirectoryObjectFromStreamObject(streamObject, titleLayout=None, titleSeparator='-'):
+
+        titleLayout = titleLayout if titleLayout else Prefs['title_layout']
 
         name         = streamObject['channel']['name']
         display_name = streamObject['channel']['display_name']
         status       = streamObject['channel']['status'] if 'status' in streamObject['channel'] else '?'
         logo_img     = streamObject['channel']['logo']
+        game         = streamObject['channel']['game']
         preview_img  = GetPreviewImage(streamObject['preview']['medium'])
         viewers      = "{:,}".format(int(streamObject['viewers']))
 
-        viewersString = "{0} {1}".format(viewers, L('viewers'))
-        title         = "{0} - {1} - {2}".format(display_name, viewersString, status)
-        summary       = "{0}\n\n{1}".format(viewersString, status)
+        viewers_string = "{0} {1}".format(viewers, L('viewers'))
+        summary       = "{0}\n\n{1}".format(viewers_string, status)
+
+        title_elements = {
+                'name':   display_name,
+                'views':  viewers_string,
+                'status': status,
+                'game':   game,
+        }
+
+        title = []
+        for element in [x.strip() for x in titleLayout.split(',')]:
+                if element in title_elements:
+                        title.append(title_elements[element])
+
+        separator = ' %s ' % titleSeparator
+        title = separator.join(title)
 
         return DirectoryObject(
                 key     = Callback(ChannelMenu, channelName=name, streamObject=streamObject),
@@ -201,7 +219,7 @@ def FavGames():
 
         for game in games:
                 oc.add(DirectoryObject(
-                        key = Callback(SearchStreams, query=game.strip()),
+                        key = Callback(SearchStreams, query=game.strip(), titleLayout=Prefs['title_layout2']),
                         title = u'%s' % game,
                         thumb = ICONS['games']
                 ))
@@ -449,7 +467,7 @@ def ChannelsForGameList(game, apiurl=None, limit=PAGE_LIMIT):
         streams = JSON.ObjectFromURL(apiurl)
 
         for streamObject in streams['streams']:
-                oc.add(DirectoryObjectFromStreamObject(streamObject))            
+                oc.add(DirectoryObjectFromStreamObject(streamObject, titleLayout=Prefs['title_layout2']))            
 
         if len(oc) >= limit:
                 oc.add(NextPageObject(
@@ -489,7 +507,7 @@ def SearchMenu():
 
 # results are live streams
 @route(PATH + '/search/streams', limit=int)
-def SearchStreams(query, apiurl=None, limit=PAGE_LIMIT):
+def SearchStreams(query, apiurl=None, limit=PAGE_LIMIT, titleLayout=None):
 
         oc = ObjectContainer(title2=L('search'), no_cache=True)
 
@@ -500,14 +518,14 @@ def SearchStreams(query, apiurl=None, limit=PAGE_LIMIT):
         results = JSON.ObjectFromURL(apiurl)
 
         for streamObject in results['streams']:
-                oc.add(DirectoryObjectFromStreamObject(streamObject))
+                oc.add(DirectoryObjectFromStreamObject(streamObject, titleLayout=titleLayout))
 
         if len(oc) < 1:
                 return ErrorMessage(L('search'), L('search_error'))
 
         if len(oc) >= limit:
                 oc.add(NextPageObject(
-                        key   = Callback(SearchStreams, query=query, apiurl=results['_links']['next'], limit=limit),
+                        key   = Callback(SearchStreams, query=query, apiurl=results['_links']['next'], limit=limit, titleLayout=titleLayout),
                         title = u'%s' % L('more'),
                         thumb = ICONS['more'],
                 ))                

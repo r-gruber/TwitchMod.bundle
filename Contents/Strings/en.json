@@ -25,5 +25,7 @@
         "name": "Name",
         "view_count": "View Count",
         "favourite_games": "Favorite Games",
-        "favourite_games_p": "Favorite Games (Comma Separated)"
+        "favourite_games_p": "Favorite Games (Comma Separated)",
+        "title_layout": "Title Layout",
+        "title_layout2": "Title Layout (game lists)",
 }
