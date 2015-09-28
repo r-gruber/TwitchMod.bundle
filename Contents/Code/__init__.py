@@ -118,14 +118,13 @@ def StringsFromStreamObject(streamObject, titleLayout=None, titleSeparator='-'):
         name         = streamObject['channel']['name']
         display_name = streamObject['channel']['display_name']
         status       = streamObject['channel']['status'] if 'status' in streamObject['channel'] else '?'
-        logo_img     = streamObject['channel']['logo']
         game         = streamObject['channel']['game']
-        preview_img  = GetPreviewImage(streamObject['preview']['medium'])
-        viewers      = "{:,}".format(int(streamObject['viewers']))
         start_time   = Datetime.ParseDate(streamObject['created_at'])
         quality      = "%dp%d" % (streamObject['video_height'], round(streamObject['average_fps']))
+
+        viewers        = "{:,}".format(int(streamObject['viewers']))
         viewers_string = "{0} {1}".format(viewers, L('viewers'))
-        summary       = "%s\nStarted %s\n%s\n\n%s" % (viewers_string, TimeSince(start_time, pretty=True), quality, status)
+      
         title_elements = {
                 'name':    display_name,
                 'views':   viewers_string,
@@ -134,10 +133,10 @@ def StringsFromStreamObject(streamObject, titleLayout=None, titleSeparator='-'):
                 'time':    TimeSince(start_time),
                 'quality': quality
         }
-        title = []
-        for element in [x.strip() for x in titleLayout.split(',')]:
-                if element in title_elements:
-                        title.append(title_elements[element])
+
+        title   = [title_elements[element] for element in [x.strip() for x in titleLayout.split(',')] if element in title_elements]
+        summary = "%s\nStarted %s\n%s\n\n%s" % (viewers_string, TimeSince(start_time, pretty=True), quality, status)
+       
         separator = ' %s ' % titleSeparator
 
         return (separator.join(title), summary)
@@ -327,9 +326,7 @@ def FollowedChannelsList(apiurl=None, limit=100):
                 return ErrorMessage(L('followed_channels'), L('followed_streams_list_error'))            
 
         # gather all the channel names that the user is following
-        followed_channels = []
-        for channel in following['follows']:
-                followed_channels.append(channel['channel']['name'])
+        followed_channels = [channel['channel']['name'] for channel in following['follows']]
 
         # get a list of stream objects for followed streams so we can add Live status to the title
         # an offline stream wont return a stream object
