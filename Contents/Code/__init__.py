@@ -46,10 +46,10 @@ ICONS = {
 ####################################################################################################
 # twitch gives utc timestamps. convert them to local time so we can get delta
 def utc_to_local(utc_dt):
-    timestamp = calendar.timegm(utc_dt.timetuple())
-    local_dt = datetime.fromtimestamp(timestamp)
-    assert utc_dt.resolution >= timedelta(microseconds=1)
-    return local_dt.replace(microsecond=utc_dt.microsecond)
+        timestamp = calendar.timegm(utc_dt.timetuple())
+        local_dt = datetime.fromtimestamp(timestamp)
+        assert utc_dt.resolution >= timedelta(microseconds=1)
+        return local_dt.replace(microsecond=utc_dt.microsecond)
 
 def TimeSince(dt, pretty=False):
 
@@ -77,6 +77,10 @@ def ErrorMessage(error, message):
                 header  = u'%s' % error,
                 message = u'%s' % message, 
         )
+
+def xstr(s):
+
+        return '' if s is None else str(s)
 
 # workaround to keep preview images fresh. If the URL to the image for a thumb is different, it will reload it.
 # so this appends a "#" and a timestamp. the timestamp will change if 2 minutes have passed since the last time.
@@ -117,8 +121,8 @@ def StringsFromStreamObject(streamObject, titleLayout=None, titleSeparator='-'):
 
         name         = streamObject['channel']['name']
         display_name = streamObject['channel']['display_name']
-        status       = streamObject['channel']['status'] if 'status' in streamObject['channel'] else '?'
-        game         = streamObject['channel']['game']
+        status       = xstr(streamObject['channel']['status'] if 'status' in streamObject['channel'] else '?')
+        game         = xstr(streamObject['channel']['game'] if 'game' in streamObject['channel'] else '?')
         start_time   = Datetime.ParseDate(streamObject['created_at'])
         quality      = "%dp%d" % (streamObject['video_height'], round(streamObject['average_fps']))
 
