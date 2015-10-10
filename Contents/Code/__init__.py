@@ -377,15 +377,18 @@ def ChannelVodsList(channel=None, apiurl=None, broadcasts=True, limit=PAGE_LIMIT
 
         videos = JSON.ObjectFromURL(apiurl)
 
+        ignored = 0
         for video in videos['videos']:
                 url      = video['url']
                 vod_type = url.split('/')[-2]
                 
                 if vod_type == "v":
                         vod_date    = Datetime.ParseDate(video['recorded_at'])
-                        title       = "{0} - {1}".format(vod_date.strftime('%a %b %d, %Y'), video['title'])
+                        vod_title   = video['title'] if video['title'] else L('untitled_broadcast')
                         description = video['description']
                         length      = int(video['length']) * 1000
+
+                        title       = "{0} - {1}".format(vod_date.strftime('%a %b %d, %Y'), vod_title)
 
                         oc.add(VideoClipObject(
                                 url      = "1" + url,
@@ -394,8 +397,10 @@ def ChannelVodsList(channel=None, apiurl=None, broadcasts=True, limit=PAGE_LIMIT
                                 duration = length,
                                 thumb    = Resource.ContentsOfURLWithFallback(video['preview'], fallback=ICONS['videos']),
                         ))
+                else: 
+                        ignored += 1
 
-        if len(oc) >= limit:
+        if len(oc) + ignored >= limit:
                 oc.add(NextPageObject(
                         key   = Callback(ChannelVodsList, apiurl=videos['_links']['next'], broadcasts=broadcasts, limit=limit),
                         title = u'%s' % L('more'),
