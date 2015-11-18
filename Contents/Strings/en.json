@@ -28,5 +28,10 @@
         "favourite_games_p": "Favorite Games (Comma Separated)",
         "title_layout": "Title Layout",
         "title_layout2": "Title Layout (game lists)",
-        "untitled_broadcast": "Untitled Broadcast"
+        "untitled_broadcast": "Untitled Broadcast",
+        "Success": "Success",
+        "Error": "Error",
+        "Update available: %s": "Update available: %s",
+        "Install latest version of the channel.": "Install latest version of the channel.",
+        "Channel updated to version %s": "Channel updated to version %s"
 }
