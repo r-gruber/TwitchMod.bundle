@@ -11,6 +11,7 @@ import calendar
 from datetime import datetime, timedelta
 from updater import Updater
 from DumbKeyboard import DumbKeyboard
+from DumbPrefs import DumbPrefs
 ####################################################################################################
 TWITCH_API_BASE      = 'https://api.twitch.tv/kraken'
 TWTICH_API_VERSION   = 3
@@ -250,12 +251,17 @@ def MainMenu():
                         thumb = ICONS['following'],
                 ))       
 
-        oc.add(PrefsObject(
-                title   = u'%s' % L('Preferences'),
-                tagline = u'%s' % L('Preferences'),
-                summary = u'%s' % L('Preferences'),
-                thumb   = ICONS['settings'],
-        ))
+        if Client.Product in DumbPrefs.clients:
+                DumbPrefs(PATH, oc,
+                        title = u'%s' % L('Preferences'),
+                        thumb = ICONS['settings'])
+        else:
+                oc.add(PrefsObject(
+                        title   = u'%s' % L('Preferences'),
+                        tagline = u'%s' % L('Preferences'),
+                        summary = u'%s' % L('Preferences'),
+                        thumb   = ICONS['settings'],
+                ))
 
         return oc
 
