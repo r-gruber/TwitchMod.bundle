@@ -10,8 +10,8 @@
 import calendar
 from datetime import datetime, timedelta
 from updater import Updater
-from DumbKeyboard import DumbKeyboard
-from DumbPrefs import DumbPrefs
+from DumbTools import DumbKeyboard
+from DumbTools import DumbPrefs
 ####################################################################################################
 TWITCH_API_BASE      = 'https://api.twitch.tv/kraken'
 TWTICH_API_VERSION   = 3
