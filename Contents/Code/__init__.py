@@ -9,6 +9,9 @@
 
 import calendar
 from datetime import datetime, timedelta
+from updater import Updater
+from DumbTools import DumbKeyboard
+from DumbTools import DumbPrefs
 ####################################################################################################
 TWITCH_API_BASE      = 'https://api.twitch.tv/kraken'
 TWTICH_API_VERSION   = 3
@@ -206,7 +209,8 @@ def Start():
 @handler(PATH, NAME, art=ICONS['art'])
 def MainMenu():
 
-        oc = ObjectContainer(no_cache=True, replace_parent=False)
+        oc = ObjectContainer(no_cache=True)
+        Updater(PATH + '/updater', oc)
 
         oc.add(DirectoryObject(
                 key   = Callback(FeaturedStreamsList),
@@ -247,12 +251,17 @@ def MainMenu():
                         thumb = ICONS['following'],
                 ))       
 
-        oc.add(PrefsObject(
-                title   = u'%s' % L('Preferences'),
-                tagline = u'%s' % L('Preferences'),
-                summary = u'%s' % L('Preferences'),
-                thumb   = ICONS['settings'],
-        ))
+        if Client.Product in DumbPrefs.clients:
+                DumbPrefs(PATH, oc,
+                        title = u'%s' % L('Preferences'),
+                        thumb = ICONS['settings'])
+        else:
+                oc.add(PrefsObject(
+                        title   = u'%s' % L('Preferences'),
+                        tagline = u'%s' % L('Preferences'),
+                        summary = u'%s' % L('Preferences'),
+                        thumb   = ICONS['settings'],
+                ))
 
         return oc
 
@@ -522,24 +531,35 @@ def SearchMenu():
 
         oc = ObjectContainer()
 
-        oc.add(InputDirectoryObject(
-                key    = Callback(SearchStreams),
-                title  = u'%s %s' % (L('search'), L('streams')),
-                thumb  = ICONS['search'],
-                prompt = u'%s %s' % (L('search_prompt'), L('streams')),
-        ))
-        oc.add(InputDirectoryObject(
-                key    = Callback(SearchChannels),
-                title  = u'%s %s' % (L('search'), L('channels')),
-                thumb  = ICONS['search'],
-                prompt = u'%s %s' % (L('search_prompt'), L('channels')),
-        ))
-        oc.add(InputDirectoryObject(
-                key    = Callback(SearchGames),
-                title  = u'%s %s' % (L('search'), L('games')),
-                thumb  = ICONS['search'],
-                prompt = u'%s %s' % (L('search_prompt'), L('games')),
-        ))
+        if Client.Product in DumbKeyboard.clients:
+                DumbKeyboard(PATH, oc, SearchStreams,
+                        dktitle = u'%s %s' % (L('search'), L('streams')),
+                        dkthumb = ICONS['search'])
+                DumbKeyboard(PATH, oc, SearchChannels,
+                        dktitle = u'%s %s' % (L('search'), L('channels')),
+                        dkthumb = ICONS['search'])
+                DumbKeyboard(PATH, oc, SearchGames,
+                        dktitle = u'%s %s' % (L('search'), L('games')),
+                        dkthumb = ICONS['search'])
+        else:
+                oc.add(InputDirectoryObject(
+                        key    = Callback(SearchStreams),
+                        title  = u'%s %s' % (L('search'), L('streams')),
+                        thumb  = ICONS['search'],
+                        prompt = u'%s %s' % (L('search_prompt'), L('streams')),
+                ))
+                oc.add(InputDirectoryObject(
+                        key    = Callback(SearchChannels),
+                        title  = u'%s %s' % (L('search'), L('channels')),
+                        thumb  = ICONS['search'],
+                        prompt = u'%s %s' % (L('search_prompt'), L('channels')),
+                ))
+                oc.add(InputDirectoryObject(
+                        key    = Callback(SearchGames),
+                        title  = u'%s %s' % (L('search'), L('games')),
+                        thumb  = ICONS['search'],
+                        prompt = u'%s %s' % (L('search_prompt'), L('games')),
+                ))
 
         return oc
 
