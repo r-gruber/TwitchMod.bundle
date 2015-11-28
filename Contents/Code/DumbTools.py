@@ -4,11 +4,12 @@
 class DumbKeyboard:
 
         clients = ['Plex for iOS', 'Plex Media Player', 'Plex Web']
-        KEYS = list('abcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+,./<>?')
+        KEYS       = list('abcdefghijklmnopqrstuvwxyz1234567890-=;[]\\\',./')
+        SHIFT_KEYS = list('ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()_+:{}|\"<>?')
 
-        def __init__(self, prefix, oc, callback, dktitle=None, dkthumb=None, **kwargs):
+        def __init__(self, prefix, oc, callback, dktitle=None, dkthumb=None, dkplaceholder=None, dksecure=False, **kwargs):
 
-                cb_hash = hash(str(callback))
+                cb_hash = hash(str(callback)+str(kwargs))
                 Route.Connect(prefix+'/dumbkeyboard/%s'                     % cb_hash, self.Keyboard)
                 Route.Connect(prefix+'/dumbkeyboard/%s/submit'              % cb_hash, self.Submit)
                 Route.Connect(prefix+'/dumbkeyboard/%s/history'             % cb_hash, self.History)
@@ -16,7 +17,7 @@ class DumbKeyboard:
                 Route.Connect(prefix+'/dumbkeyboard/%s/history/add/{query}' % cb_hash, self.AddHistory)
 
                 oc.add(DirectoryObject(
-                        key   = Callback(self.Keyboard),
+                        key   = Callback(self.Keyboard, query=dkplaceholder),
                         title = str(dktitle) if dktitle else u'%s' % L('DumbKeyboard Search'),
                         thumb = dkthumb
                 ))
@@ -27,14 +28,20 @@ class DumbKeyboard:
 
                 self.Callback = callback
                 self.callback_args = kwargs
+                self.secure = dksecure
 
-        def Keyboard(self, query=None):
+        def Keyboard(self, query=None, shift=False):
 
                 oc = ObjectContainer()
 
+                if self.secure and query:
+                        string = ''.join(['*' for i in range(len(query[:-1]))]) + query[-1]
+                else:
+                        string = query if query else ""
+
                 oc.add(DirectoryObject(
                         key   = Callback(self.Submit, query=query),
-                        title = u'%s: %s' % (L('Submit'), query.replace(' ', '_') if query else query),
+                        title = u'%s: %s' % (L('Submit'), string.replace(' ', '_')),
                 ))
 
                 if len(Dict['DumbKeyboard-History']) > 0:
@@ -44,17 +51,22 @@ class DumbKeyboard:
                         ))
 
                 oc.add(DirectoryObject(
-                        key = Callback(self.Keyboard, query=query+" " if query else " "),
+                        key   = Callback(self.Keyboard, query=query+" " if query else " "),
                         title = 'Space',
                 ))
 
                 if query:
                         oc.add(DirectoryObject(
-                                key = Callback(self.Keyboard, query=query[:-1]),
+                                key   = Callback(self.Keyboard, query=query[:-1]),
                                 title = 'Backspace',
                         ))
 
-                for key in self.KEYS:
+                oc.add(DirectoryObject(
+                        key   = Callback(self.Keyboard, query=query, shift=True),
+                        title = 'Shift',
+                ))                        
+
+                for key in self.KEYS if not shift else self.SHIFT_KEYS:
                         oc.add(DirectoryObject(
                                 key   = Callback(self.Keyboard, query=query+key if query else key),
                                 title = u'%s' % key,
@@ -116,23 +128,19 @@ class DumbPrefs:
                 oc.add(DirectoryObject(
                         key   = Callback(self.ListPrefs),
                         title = title if title else L('Preferences'),
-                        thumb = thumb if thumb else None,
+                        thumb = thumb,
                 ))
 
                 self.prefix = prefix
-                self.host = Request.Headers['Host']
-
-                if 'plex.direct' in self.host:
-                        self.host = "%s:%s" % (self.host.split('.')[0].replace('-','.'), self.host.split(':')[-1])
-
-                Log(self.host)
+                self.host = 'http://127.0.0.1:32400'
 
                 self.GetPrefs()
 
         def GetPrefs(self):
 
                 try:
-                        prefs = XML.ElementFromString(HTTP.Request("http://%s/:/plugins/%s/prefs" % (self.host, Plugin.Identifier), headers=Request.Headers, immediate=True, cacheTime=0).content).xpath('/MediaContainer/Setting')
+                        data  = HTTP.Request("%s/:/plugins/%s/prefs" % (self.host, Plugin.Identifier), headers=Request.Headers, immediate=True, cacheTime=0).content
+                        prefs = XML.ElementFromString(data).xpath('/MediaContainer/Setting')
                 except Exception as e:
                         Log(str(e))
                         prefs = []
@@ -140,10 +148,11 @@ class DumbPrefs:
                 defaultPrefs = []
                 for pref in prefs:
                         item = {}
-                        item['id'] = pref.xpath("@id")[0]
-                        item['type'] = pref.xpath("@type")[0]
-                        item['label'] = pref.xpath("@label")[0]
+                        item['id']      = pref.xpath("@id")[0]
+                        item['type']    = pref.xpath("@type")[0]
+                        item['label']   = pref.xpath("@label")[0]
                         item['default'] = pref.xpath("@default")[0]
+                        item['secure']  = True if pref.xpath("@secure")[0] == "true" else False
                         if item['type'] == "enum":
                                 item['values'] = pref.xpath("@values")[0].split("|")
 
@@ -153,7 +162,7 @@ class DumbPrefs:
 
         def Set(self, key, value):
 
-                HTTP.Request("http://%s/:/plugins/%s/prefs/set?%s=%s" % (self.host, Plugin.Identifier, key, value), headers=Request.Headers, immediate=True)
+                HTTP.Request("%s/:/plugins/%s/prefs/set?%s=%s" % (self.host, Plugin.Identifier, key, value), headers=Request.Headers, immediate=True)
                 return ObjectContainer()
 
         def ListPrefs(self):
@@ -164,6 +173,9 @@ class DumbPrefs:
 
                         do = DirectoryObject()
 
+                        value = Prefs[pref['id']] if not pref['secure'] else ''.join(['*' for i in range(len(Prefs[pref['id']]))])
+                        title = u'%s: %s = %s' % (L(pref['label']), pref['type'], value)
+
                         if pref['type'] == 'enum':
                                 do.key = Callback(self.ListEnum, id=pref['id'])
                         elif pref['type'] == 'bool':
@@ -171,19 +183,20 @@ class DumbPrefs:
                         elif pref['type'] == 'text':
                                 if Client.Product in DumbKeyboard.clients:
                                         DumbKeyboard(self.prefix, oc, self.SetText, id=pref['id'],
-                                                dktitle = u'%s: %s = %s' % (L(pref['label']), pref['type'], Prefs[pref['id']])
+                                                dktitle       = title,
+                                                dkplaceholder = Prefs[pref['id']],
+                                                dksecure      = pref['secure']
                                         )
                                 else:
                                         oc.add(InputDirectoryObject(
-                                                key = Callback(self.SetText, id=pref['id']),
-                                                title = u'%s: %s = %s' % (L(pref['label']), pref['type'], Prefs[pref['id']])
+                                                key   = Callback(self.SetText, id=pref['id']),
+                                                title = title
                                         ))
                                 continue
                         else:
                                 do.key = Callback(self.ListPrefs)
 
-                        do.title = u'%s: %s = %s' % (L(pref['label']), pref['type'], Prefs[pref['id']])
-
+                        do.title = title
 
                         oc.add(do)
 
