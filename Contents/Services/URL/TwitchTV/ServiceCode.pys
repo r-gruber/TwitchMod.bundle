@@ -5,11 +5,11 @@ TOKEN_CACHE_TIME = 15 # tokens are valid for 15 minutes
 STREAM_DATA = 'https://api.twitch.tv/kraken/streams/{channel_name}'
 STREAM_TOKEN = 'http://api.twitch.tv/api/channels/{channel_name}/access_token'
 STREAM_URL = ('http://usher.twitch.tv/api/channel/hls/{channel_name}.m3u8'
-                    '?token={token}&sig={sig}&allow_source=true')
+              '?token={token}&sig={sig}&allow_source=true')
 VOD_DATA = 'https://api.twitch.tv/kraken/videos/{vod_type}{vod_id}'
 VOD_TOKEN = 'http://api.twitch.tv/api/vods/{vod_id}/access_token'
 VOD_URL = ('http://usher.twitch.tv/vod/{vod_id}'
-                    '?nauth={token}&nauthsig={sig}&allow_source=true')
+           '?nauth={token}&nauthsig={sig}&allow_source=true')
 ACCEPTED_VOD_TYPES = ["v"]
 # arbitrary resolution values so the client can distinguish them
 HLS_RESOLUTIONS = OrderedDict([("Source", 1080),
@@ -18,11 +18,10 @@ HLS_RESOLUTIONS = OrderedDict([("Source", 1080),
                                ("Low", 360),
                                ("Mobile", 226)])
 
-####################################################################################################
 def NormalizeURL(url):
     return url.split('?')[0].split('#')[0].rstrip('/')
 
-####################################################################################################
+
 def MetadataObjectForURL(url):
     if is_stream(url):
         user_id = get_user_id(url)
@@ -62,7 +61,7 @@ def MetadataObjectForURL(url):
     else:
         raise Ex.MediaNotAvailable
 
-####################################################################################################
+
 def MediaObjectsForURL(url):
     quality_option = Prefs['stream_quality_selection'] if is_stream(url) \
                      else Prefs['vod_quality_selection']
@@ -109,7 +108,7 @@ def MediaObjectsForURL(url):
             )
         ]
 
-####################################################################################################
+
 @indirect
 def PlayHLS(url, quality=None, **kwargs):
     if is_stream(url):
