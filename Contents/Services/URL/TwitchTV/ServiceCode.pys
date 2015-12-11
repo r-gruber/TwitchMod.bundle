@@ -1,250 +1,188 @@
-# tokens are valid for 15 minutes
-TOKEN_CACHE_TIME = 15
-
-# Stream urls
-STREAM_DATA      = 'https://api.twitch.tv/kraken/streams/{channel_name}'
-HLS_TOKEN_URL    = 'http://api.twitch.tv/api/channels/{channel_name}/access_token'
-HLS_PLAYLIST_URL = 'http://usher.twitch.tv/api/channel/hls/{channel_name}.m3u8?token={token}&sig={sig}&allow_source=true'
-# Vod urls
-VOD_DATA         = 'https://api.twitch.tv/kraken/videos/{vod_type}{vod_id}'
-VOD_TOKEN_URL    = 'http://api.twitch.tv/api/vods/{vod_id}/access_token'
-VOD_PLAYLIST_URL = 'http://usher.twitch.tv/vod/{vod_id}?nauth={token}&nauthsig={sig}&allow_source=true'
-
+from collections import OrderedDict
+from time import time
+#from __builtin__ import str
+TOKEN_CACHE_TIME = 15 # tokens are valid for 15 minutes
+STREAM_DATA = 'https://api.twitch.tv/kraken/streams/{channel_name}'
+STREAM_TOKEN = 'http://api.twitch.tv/api/channels/{channel_name}/access_token'
+STREAM_URL = ('http://usher.twitch.tv/api/channel/hls/{channel_name}.m3u8'
+              '?token={token}&sig={sig}&allow_source=true')
+VOD_DATA = 'https://api.twitch.tv/kraken/videos/{vod_type}{vod_id}'
+VOD_TOKEN = 'http://api.twitch.tv/api/vods/{vod_id}/access_token'
+VOD_URL = ('http://usher.twitch.tv/vod/{vod_id}'
+           '?nauth={token}&nauthsig={sig}&allow_source=true')
 ACCEPTED_VOD_TYPES = ["v"]
-
-# ordered list of qualities
-HLS_QUALITIES   = ["Source", "High", "Medium", "Low", "Mobile"]
 # arbitrary resolution values so the client can distinguish them
-HLS_RESOLUTIONS = {
-        "Source": 1080,
-        "High":   720,
-        "Medium": 480,
-        "Low":    360,
-        "Mobile": 226
-}
+HLS_RESOLUTIONS = OrderedDict([("Source", 1080),
+                               ("High", 720),
+                               ("Medium", 480),
+                               ("Low", 360),
+                               ("Mobile", 226)])
 
-####################################################################################################
 def NormalizeURL(url):
+    return url.split('?')[0].split('#')[0].rstrip('/')
 
-        return url.split('?')[0].split('#')[0].rstrip('/')
 
-####################################################################################################
 def MetadataObjectForURL(url):
-
-        if IsStream(url):
-                user_id = GetUserId(url)
-
-                try:
-                        video = JSON.ObjectFromURL(STREAM_DATA.format(channel_name=user_id), cacheTime=0)
-                except:
-                        raise Ex.MediaNotAvailable
-
-                if 'stream' not in video or video['stream'] is None:
-                        raise Ex.LiveMediaNotStarted
-
-                display_name = video['stream']['channel']['display_name']
-                game         = video['stream']['channel']['game']   if 'game'   in video['stream']['channel'] else '?'
-                status       = video['stream']['channel']['status'] if 'status' in video['stream']['channel'] else '?'
-                viewers      = video['stream']['viewers']
-                # dumb hack to make the thumbnail only valid for ~100 seconds
-                time         = "%d" % Datetime.TimestampFromDatetime(Datetime.Now()) # str() doesnt work correctly?
-                thumb        = "%s#%s00" % (video['stream']['preview']['large'], time[:-2])
-                Log("TWITCH: %s %s" %(time, thumb))
-
-                return VideoClipObject(
-                        title   = u'%s - %s' % (display_name, game),
-                        summary = u'%s\n\n%d viewers' % (status, viewers),
-                        thumb   = Resource.ContentsOfURLWithFallback(thumb)
-                )
-        elif IsVod(url):
-                vod_id   = GetVodId(url)
-                vod_type = GetVodType(url)
-
-                try:
-                        video = JSON.ObjectFromURL(VOD_DATA.format(vod_type=vod_type, vod_id=vod_id), cacheTime=0)
-                except:
-                        raise Ex.MediaNotAvailable
-
-                return VideoClipObject(
-                        title    = u'%s' % video['title'],
-                        summary  = u'%s' % video['description'],
-                        thumb    = Resource.ContentsOfURLWithFallback(video['preview']),
-                        duration = int(video['length']) * 1000
-                )
+    if is_stream(url):
+        user_id = get_user_id(url)
+        try:
+            video = JSON.ObjectFromURL(STREAM_DATA.format(channel_name=user_id), cacheTime=0)
+        except Exception:
+            raise Ex.MediaNotAvailable
         else:
+            if video['stream'] is None:
+                raise Ex.LiveMediaNotStarted
+            stream_info = video['stream']
+            channel_info = stream_info['channel']
+        # make the thumbnail only valid for ~100 seconds
+        thumb = "{}?t={:.0f}".format(stream_info['preview']['large'], round(time(), -2))
+        return VideoClipObject(
+            title=u'%s - %s' % (channel_info['display_name'], channel_info.get('game', '?')),
+            summary=u'%s\n\n%d viewers' % (channel_info.get('status', '?'), stream_info['viewers']),
+            thumb=Resource.ContentsOfURLWithFallback(thumb)
+        )
+    elif is_vod(url):
+        vod_id = get_vod_id(url)
+        vod_type = get_vod_type(url)
+        try:
+            video = JSON.ObjectFromURL(VOD_DATA.format(vod_type=vod_type, vod_id=vod_id),
+                                       cacheTime=0)
+        except Exception:
+            raise Ex.MediaNotAvailable
+        else:
+            if 'error' in video:
                 raise Ex.MediaNotAvailable
+        return VideoClipObject(
+            title=unicode(video['title']),
+            summary=unicode(video['description']),
+            thumb=Resource.ContentsOfURLWithFallback(video['preview']),
+            duration=int(video['length']) * 1000
+        )
+    else:
+        raise Ex.MediaNotAvailable
 
 
-####################################################################################################
 def MediaObjectsForURL(url):
+    quality_option = Prefs['stream_quality_selection'] if is_stream(url) \
+                     else Prefs['vod_quality_selection']
+    if is_vod(url):
+        if get_vod_type(url) not in ACCEPTED_VOD_TYPES:
+            raise Ex.MediaNotAvailable
+    if quality_option == "Manual":
+        return [
+            MediaObject(
+                protocol='hls',
+                container='mpegts',
+                video_codec=VideoCodec.H264,
+                audio_codec=AudioCodec.AAC,
+                audio_channels=2,
+                optimized_for_streaming=True,
+                video_resolution=resolution,
+                parts=[PartObject(key=Callback(PlayHLS, url=url, quality=quality, ext='m3u8'))]
+            ) for quality, resolution in HLS_RESOLUTIONS.iteritems()
+        ]
+    elif quality_option in HLS_RESOLUTIONS: # explicit quality selection
+        return [
+            MediaObject(
+                protocol='hls',
+                container='mpegts',
+                video_codec=VideoCodec.H264,
+                audio_codec=AudioCodec.AAC,
+                audio_channels=2,
+                optimized_for_streaming=True,
+                video_resolution=HLS_RESOLUTIONS[quality_option],
+                parts=[PartObject(key=Callback(PlayHLS, url=url,
+                                               quality=quality_option, ext='m3u8'))]
+            )
+        ]
+    else: # automatic (let plex handle it)
+        return [
+            MediaObject(
+                protocol='hls',
+                container='mpegts',
+                video_codec=VideoCodec.H264,
+                audio_codec=AudioCodec.AAC,
+                audio_channels=2,
+                optimized_for_streaming=True,
+                parts=[PartObject(key=Callback(PlayHLS, url=url, ext='m3u8'))]
+            )
+        ]
 
-        qualityOption = Prefs['stream_quality_selection'] if IsStream(url) else Prefs['vod_quality_selection']
 
-        if IsVod(url):
-                if not GetVodType(url) in ACCEPTED_VOD_TYPES:
-                        raise Ex.MediaNotAvailable
-
-        # manual
-        if qualityOption == "Manual":
-                return [
-                        MediaObject(
-                                protocol    = 'hls',
-                                container   = 'mpegts',
-                                video_codec = VideoCodec.H264,
-                                audio_codec = AudioCodec.AAC,
-                                audio_channels = 2,
-                                optimized_for_streaming = True,
-                                video_resolution = HLS_RESOLUTIONS[HLS_QUALITIES[x]],
-                                parts = [
-                                        PartObject(
-                                                key = Callback(PlayHLS, url=url, quality=x, ext='m3u8')
-                                        )
-                                ]
-                        ) for x in xrange(len(HLS_QUALITIES))
-                ]
-        # explicit quality selection
-        elif qualityOption in HLS_QUALITIES:
-                return [
-                        MediaObject(
-                                protocol    = 'hls',
-                                container   = 'mpegts',
-                                video_codec = VideoCodec.H264,
-                                audio_codec = AudioCodec.AAC,
-                                audio_channels = 2,
-                                optimized_for_streaming = True,
-                                video_resolution = HLS_RESOLUTIONS[qualityOption],
-                                parts = [
-                                        PartObject(
-                                                key = Callback(PlayHLS, url=url, quality=HLS_QUALITIES.index(qualityOption), ext='m3u8')
-                                        )
-                                ]
-                        )
-                ]
-        # automatic (let plex handle it)
-        else:
-                return [
-                        MediaObject(
-                                protocol    = 'hls',
-                                container   = 'mpegts',
-                                video_codec = VideoCodec.H264,
-                                audio_codec = AudioCodec.AAC,
-                                audio_channels = 2,
-                                optimized_for_streaming = True,
-                                parts = [
-                                        PartObject(
-                                                key = Callback(PlayHLS, url=url, ext='m3u8')
-                                        )
-                                ]
-                        )
-                ]
-
-####################################################################################################
 @indirect
-def PlayHLS(url, quality=-1, **kwargs):
-
-        if IsStream(url):
-                user_id = GetUserId(url)
-                # get a token
-                try:
-                        token = JSON.ObjectFromURL(HLS_TOKEN_URL.format(channel_name=user_id), cacheTime=TOKEN_CACHE_TIME)
-                except:
-                        raise Ex.MediaNotAvailable
-                # get the playlist with the token
-                final_url = HLS_PLAYLIST_URL.format(channel_name=user_id, token=String.Quote(token['token']), sig=String.Quote(token['sig']))
-
-        elif IsVod(url):
-                vod_id   = GetVodId(url)
-                vod_type = GetVodType(url)
-                # get a token
-                try:
-                        token = JSON.ObjectFromURL(VOD_TOKEN_URL.format(vod_id=vod_id), cacheTime=TOKEN_CACHE_TIME)
-                except:
-                        raise Ex.MediaNotAvailable
-                # get the playlist with the token
-                final_url = VOD_PLAYLIST_URL.format(vod_id=vod_id, token=String.Quote(token['token']), sig=String.Quote(token['sig']))
+def PlayHLS(url, quality=None, **kwargs):
+    if is_stream(url):
+        user_id = get_user_id(url)
+        try: # get a token
+            token = JSON.ObjectFromURL(STREAM_TOKEN.format(channel_name=user_id),
+                                       cacheTime=TOKEN_CACHE_TIME)
+        except Exception:
+            raise Ex.MediaNotAvailable
         else:
-                raise Ex.MediaNotAvailable
+            final_url = STREAM_URL.format(channel_name=user_id,
+                                          token=String.Quote(token['token']),
+                                          sig=String.Quote(token['sig']))
+    elif is_vod(url):
+        vod_id = get_vod_id(url)
+        try: # get a token
+            token = JSON.ObjectFromURL(VOD_TOKEN.format(vod_id=vod_id),
+                                       cacheTime=TOKEN_CACHE_TIME)
+        except Exception:
+            raise Ex.MediaNotAvailable
+        else:
+            final_url = VOD_URL.format(vod_id=vod_id,
+                                       token=String.Quote(token['token']),
+                                       sig=String.Quote(token['sig']))
+    else:
+        raise Ex.MediaNotAvailable
 
-        if quality > -1:
-                Log("TWITCH: Quality = [{0}]{1}".format(quality, HLS_QUALITIES[quality]))
-                playlist_contents = HTTP.Request(final_url, cacheTime=0).content
-                # parse the qualities
-                qualities = M3UPlaylist(playlist_contents)
-                Log("TWITCH: Playlists = " + str(qualities))
-                # the address to the m3u8 of the quality we want
-                final_url = qualities.getQuality(quality)
+    if quality is not None:
+        Log("TWITCH: Quality = " + quality)
+        playlist_contents = HTTP.Request(final_url, cacheTime=0).content
+        final_url = get_twitch_quality(playlist_contents, quality)
 
-        Log("TWITCH: Final Url = " + final_url)
-
-        return IndirectResponse(VideoClipObject, key=HTTPLiveStreamURL(final_url))
+    Log("TWITCH: Final Url = " + final_url)
+    return IndirectResponse(VideoClipObject, key=HTTPLiveStreamURL(final_url))
 
 ####################################################################################################
-def IsStream(url):
+def is_stream(url):
+    return len(url.split('/')) == 4
 
-        return len(url.split('/')) == 4
+def is_vod(url):
+    return len(url.split('/')) == 6
 
-def IsVod(url):
+def get_user_id(url):
+    return url.split('/')[-1]
 
-        return len(url.split('/')) == 6
+def get_vod_id(url):
+    return url.split('/')[-1]
 
-def GetUserId(url):
+def get_vod_type(url):
+    return url.split('/')[-2]
 
-        return url.split('/')[-1]
+def parse_m3u(playlist):
+    parsed = {}
+    lines = playlist.splitlines()
+    for i, line in enumerate(lines):
+        if not line.startswith('#EXT-X-MEDIA'):
+            continue
+        name_pos = line.find('NAME="')
+        if name_pos < 0:
+            continue
+        name = line[name_pos+6:].split('"')[0]
+        url = lines[i+2] if i+2 < len(lines) else None
+        parsed[name] = url
+    return parsed
 
-def GetVodId(url):
-
-        return url.split('/')[-1]        
-
-def GetVodType(url):
-
-        vod_type = url.split('/')[-2]
-        # apparently b types need to be changed to a to make api calls (taken from livestreamer twitch plugin)
-        if vod_type == "b":
-                vod_type = "a" 
-        return vod_type
-     
-# Parse an M3U Playlist into a dict with all the qualities and urls
-class M3UPlaylist(object):
-
-        def __init__(self, input):
-
-                self.playlist = {}
-
-                lines = input.splitlines()
-
-                for line in lines:
-                        if line.startswith('#EXT-X-MEDIA'):
-                                namePosition = line.find('NAME')
-                                if namePosition == -1:
-                                        return
-                                qualityName = ''
-                                namePosition += 6 # NAME="
-                                while line[namePosition] != '"':
-                                        qualityName += line[namePosition]
-                                        namePosition += 1
-                                try:
-                                        url = lines[lines.index(line)+2]
-                                except:
-                                        url = None
-                                self.playlist[qualityName] = url
-
-        #returns selected quality or best match if not available
-        def getQuality(self, QualityInt):
-
-                if HLS_QUALITIES[QualityInt] in self.playlist:
-                        #selected quality is available
-                        Log("TWITCH: Quality is available - %s" % self.playlist[HLS_QUALITIES[QualityInt]])
-                        return self.playlist[HLS_QUALITIES[QualityInt]]
-                else:
-                        #not available, start with worst quality and improve
-                        Log("TWITCH: Quality is NOT available. Picking the best match.")
-                        bestMatch = len(HLS_QUALITIES) - 1
-                        for newMatch in range(bestMatch, -1, -1):
-                                if HLS_QUALITIES[newMatch] in self.playlist:
-                                        bestMatch = newMatch
-                        Log("TWITCH: Best Match - %s" % self.playlist[HLS_QUALITIES[bestMatch]])
-                        return self.playlist[HLS_QUALITIES[bestMatch]]
-
-        def __str__(self):
-                
-                return repr(self.playlist)        
+def get_twitch_quality(playlist, quality):
+    parsed = parse_m3u(playlist)
+    Log("TWITCH: Playlists = " + repr(parsed))
+    if quality in parsed:
+        Log("TWITCH: Quality is available. url = " + parsed[quality])
+        return parsed[quality]
+    else:
+        available = {v: k for k, v in HLS_RESOLUTIONS.iteritems() if k in parsed}
+        best_match = available[min(available.keys(),
+                                   key=lambda x: abs(x-HLS_RESOLUTIONS[quality]))]
+        Log("TWITCH: Quality is not available. Best match = " + best_match)
+        return parsed[best_match]
