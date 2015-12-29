@@ -1,4 +1,5 @@
 # TwitchMod by Cory <babylonstudio@gmail.com>
+import sys
 from urllib import urlencode
 from updater import Updater
 from DumbTools import DumbKeyboard, DumbPrefs
@@ -209,10 +210,10 @@ def ChannelMenu(channel_name, stream=None):
     if stream is not None:
         oc.add(stream_vid(stream)) # Watch Live
     # Highlights
-    oc.add(DirectoryObject(key=Callback(ChannelVodsList, channel=channel_name, broadcasts=False),
+    oc.add(DirectoryObject(key=Callback(ChannelVodsList, name=channel_name, broadcasts=False),
                            title=unicode(L('highlights')), thumb=ICONS['videos']))
     # Past Broadcasts
-    oc.add(DirectoryObject(key=Callback(ChannelVodsList, channel=channel_name, broadcasts=True),
+    oc.add(DirectoryObject(key=Callback(ChannelVodsList, name=channel_name, broadcasts=True),
                            title=unicode(L('past_broadcasts')), thumb=ICONS['videos']))
     return oc
 
@@ -274,7 +275,7 @@ def ChannelVodsList(name=None, apiurl=None, broadcasts=True, limit=PAGE_LIMIT):
         oc.add(VideoClipObject(url="1"+url,
                                title=unicode(title),
                                summary=unicode(video['description']),
-                               duration=int(video['length'])*1000,
+                               duration=min(int(video['length'])*1000, sys.maxint),
                                thumb=Resource.ContentsOfURLWithFallback(video['preview'],
                                                                         fallback=ICONS['videos'])))
     if len(oc) + ignored >= limit:
