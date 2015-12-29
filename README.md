@@ -1,10 +1,25 @@
-Note:
+Install:
 -----
 
-Rename Twitch.bundle to something else.
+Put `TwitchMod.bundle` into `Plex Media Server/Plug-ins`
 
-Workaround for the built in twitch url service is to add a '1' before the url
-so `1http://www.twitch.tv/channel` or `1http://www.twitch.tv/channel/v/1234567` will call my services
+Preferences:
+-----------
+#####General Preferences
+ * **Username:** The username to get followed channels for. This channel does not need your password since Twitch lets you pull this data without authenticating.
+ * **Order Following By:** The ordering of the followed channels page. Ordering by views will put all online channels first.
+ * **Favourite Games:** A comma separated list of games titles. Use this if you like viewing games with small amounts of viewers. Game titles dont have to be exact matches. ex: `diablo, starcraft`.
+ * **Title Layout:** What info is shown in the stream title. If you don't like any of the options, please suggest some.
+ * **Title Layout (game lists):** A separate title layout for lists where you know the game title going in.
+
+#####Quality Prefrences
+If you have issues getting streams to load on a particular Plex client, try the various options here.
+ * **Stream Quality**, **VOD Quality**
+   * *Automatic* - The client gets the master playlist. If the client supports adaptive streaming, it can make its own decisions.
+   * *Manual* - For clients that allow users to select video quality (PHT).
+   * *Source/High/Medium/Low/Mobile* - Explicitly use the selected quality. If the chosen quality does not exist on the chose stream, it will get the closest match.
+
+If none of these options work, then it is likely that your client does not currently support HLS streams.
 
 License
 -------
