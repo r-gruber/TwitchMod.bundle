@@ -194,7 +194,7 @@ def channel_dir(channel, offline=False):
 def FavGames():
     oc = ObjectContainer(title2=unicode(L('favourite_games')))
     try:
-        games = Prefs['favourite_games'].split('),')
+        games = Prefs['favourite_games'].split(',')
     except Exception:
         return error_message(oc.title2, L('favourite_games_error'))
     for game in games:
