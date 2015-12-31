@@ -1,3 +1,4 @@
+from sys import maxint as MAXINT
 from collections import OrderedDict
 from time import time
 #from __builtin__ import str
@@ -56,7 +57,7 @@ def MetadataObjectForURL(url):
             title=unicode(video['title']),
             summary=unicode(video['description']),
             thumb=Resource.ContentsOfURLWithFallback(video['preview']),
-            duration=int(video['length']) * 1000
+            duration=min(int(video['length']) * 1000, MAXINT)
         )
     else:
         raise Ex.MediaNotAvailable

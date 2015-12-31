@@ -1,5 +1,5 @@
 # TwitchMod by Cory <babylonstudio@gmail.com>
-import sys
+from sys import maxint as MAXINT
 from urllib import urlencode
 from updater import Updater
 from DumbTools import DumbKeyboard, DumbPrefs
@@ -275,7 +275,7 @@ def ChannelVodsList(name=None, apiurl=None, broadcasts=True, limit=PAGE_LIMIT):
         oc.add(VideoClipObject(url="1"+url,
                                title=unicode(title),
                                summary=unicode(video['description']),
-                               duration=min(int(video['length'])*1000, sys.maxint),
+                               duration=min(int(video['length'])*1000, MAXINT),
                                thumb=Resource.ContentsOfURLWithFallback(video['preview'],
                                                                         fallback=ICONS['videos'])))
     if len(oc) + ignored >= limit:
