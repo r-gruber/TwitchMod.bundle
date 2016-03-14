@@ -29,5 +29,10 @@
         "type":    "enum",
         "values":  ["{name},{views},{game},{status}", "{name},{views},{status}", "{name},{views}", "{name},{views},{game}", "{views},{name},{game},{status}", "{views},{name},{status}"],
         "default": "{name},{views},{status}"
+    },
+    {
+        "id":    "access_token",
+        "label": "access_token",
+        "type":  "text"
     }
 ]

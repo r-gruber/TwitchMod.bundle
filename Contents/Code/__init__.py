@@ -5,6 +5,7 @@ from updater import Updater
 from DumbTools import DumbKeyboard, DumbPrefs
 TWITCH_API_BASE = 'https://api.twitch.tv/kraken'
 TWITCH_API_MIME_TYPE = "application/vnd.twitchtv.v{version}+json".format(version=3)
+TWITCH_CLIENT_ID = 'r797t9e3qhgxayiisuqdxxkh5tj7mlz'
 PAGE_LIMIT = 20
 NAME = 'TwitchMod'
 PREFIX = '/video/twitchmod'
@@ -18,12 +19,13 @@ ICONS = {'search':    R('ic_search_c.png'),
          'more':      R('ic_more_c.png'),
          'settings':  R('ic_settings_c.png')}
 
+
 def Start():
     ObjectContainer.title1 = NAME
     ObjectContainer.art = R(ART)
     HTTP.Headers['Accept'] = TWITCH_API_MIME_TYPE
     HTTP.CacheTime = CACHE_1MINUTE
-    if not 'last_update' in Dict:
+    if 'last_update' not in Dict:
         Dict['last_update'] = 0
         Dict.Save()
 
@@ -51,6 +53,9 @@ def MainMenu():
         DumbPrefs(PREFIX, oc, title=unicode(L('Preferences')), thumb=ICONS['settings'])
     else:
         oc.add(PrefsObject(title=unicode(L('Preferences')), thumb=ICONS['settings']))
+
+    if not Prefs['access_token']:
+        oc.add(DirectoryObject(key=Callback(twitch_authorize), title='authorize'))
     return oc
 
 
@@ -59,6 +64,32 @@ class APIError(Exception):
         self.value = value
     def __str__(self):
         return repr(self.value)
+
+
+def twitch_authorize():
+    scopes =  ['user_read']
+    url = add_params(TWITCH_API_BASE + '/oauth2/authorize', {
+        'client_id': TWITCH_CLIENT_ID,
+        'response_type': 'token',
+        'redirect_uri': 'http://localhost',
+        'scope': '+'.join(scopes),
+    })
+    Log.Debug(url)
+    url_shortener = 'http://shoutkey.com/new?url=' + String.Quote(url)
+    data = HTTP.Request(url_shortener)
+    surl = Regex('Your ShoutKey is:\n.*\n.*\n(.*)')
+    surl2 = Regex('href="([^"]+)"')
+    match = surl.search(data.content)
+    Log.Debug(match)
+    if match:
+        Log.Debug(match.groups()[0])
+        match2 = surl2.search(match.groups()[0])
+        if match2:
+            shortened_url = match2.groups()[0]
+
+    oc = ObjectContainer()
+    oc.add(DirectoryObject(key=None, title=shortened_url))
+    return oc
 
 
 def api_request(endpoint, method='GET', params=None, cache_time=HTTP.CacheTime):
@@ -167,8 +198,12 @@ def stream_dir(stream, title_layout=None):
 def stream_vid(stream, title_layout=None):
     """Returnss a VideoClipObject from a twitch stream object"""
     title, summary = stream_strings(stream, title_layout)
+    if Prefs['access_token']:
+        url = '1{}|{}'.format(Prefs['access_token'], stream['channel']['url'])
+    else:
+        url = '1' + stream['channel']['url']
     return VideoClipObject(
-        url="1"+stream['channel']['url'],
+        url=url,
         title=unicode(title), summary=unicode(summary),
         thumb=Resource.ContentsOfURLWithFallback(
             get_preview_image(stream['preview']['medium']), fallback=ICONS['videos']))
@@ -272,7 +307,11 @@ def ChannelVodsList(name=None, apiurl=None, broadcasts=True, limit=PAGE_LIMIT):
         vod_date = Datetime.ParseDate(video['recorded_at'])
         vod_title = video['title'] if video['title'] else L('untitled_broadcast')
         title = "{} - {}".format(vod_date.strftime('%a %b %d, %Y'), vod_title)
-        oc.add(VideoClipObject(url="1"+url,
+        if Prefs['access_token']:
+            vod_url = '1{}|{}'.format(Prefs['access_token'], url)
+        else:
+            vod_url = '1' + url
+        oc.add(VideoClipObject(url=vod_url,
                                title=unicode(title),
                                summary=unicode(video['description']),
                                duration=min(int(video['length'])*1000, MAXINT),
