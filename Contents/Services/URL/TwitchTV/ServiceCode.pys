@@ -3,11 +3,11 @@ from collections import OrderedDict
 from time import time
 TOKEN_CACHE_TIME = 15 # tokens are valid for 15 minutes
 STREAM_DATA = 'https://api.twitch.tv/kraken/streams/{channel_name}'
-STREAM_TOKEN = 'http://api.twitch.tv/api/channels/{channel_name}/access_token'
+STREAM_TOKEN = 'https://api.twitch.tv/api/channels/{channel_name}/access_token'
 STREAM_URL = ('http://usher.twitch.tv/api/channel/hls/{channel_name}.m3u8'
               '?token={token}&sig={sig}&allow_source=true')
 VOD_DATA = 'https://api.twitch.tv/kraken/videos/{vod_type}{vod_id}'
-VOD_TOKEN = 'http://api.twitch.tv/api/vods/{vod_id}/access_token'
+VOD_TOKEN = 'https://api.twitch.tv/api/vods/{vod_id}/access_token'
 VOD_URL = ('http://usher.twitch.tv/vod/{vod_id}'
            '?nauth={token}&nauthsig={sig}&allow_source=true')
 ACCEPTED_VOD_TYPES = ["v"]

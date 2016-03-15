@@ -55,7 +55,7 @@ def MainMenu():
         oc.add(PrefsObject(title=unicode(L('Preferences')), thumb=ICONS['settings']))
 
     if not Prefs['access_token']:
-        oc.add(DirectoryObject(key=Callback(twitch_authorize), title='authorize'))
+        oc.add(DirectoryObject(key=Callback(twitch_authorize), title=L('authorize')))
     return oc
 
 

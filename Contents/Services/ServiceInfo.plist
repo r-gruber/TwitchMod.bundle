@@ -8,8 +8,8 @@
             <dict>
                 <key>URLPatterns</key>
                 <array>
-                    <string>^1([^\|]+\|)?http://([^\.]+\.)?twitch\.tv/[^/]+/[abcv]{1}/[0-9]+$</string>
-                    <string>^1([^\|]+\|)?http://([^\.]+\.)?twitch\.tv/[^/]+$</string>
+                    <string>^1([^\|]+\|)?https?://([^\.]+\.)?twitch\.tv/[^/]+/[abcv]{1}/[0-9]+$</string>
+                    <string>^1([^\|]+\|)?https?://([^\.]+\.)?twitch\.tv/[^/]+$</string>
                 </array>
             </dict>
         </dict>

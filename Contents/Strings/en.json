@@ -34,5 +34,7 @@
     "Error": "Error",
     "Update available: %s": "Update available: %s",
     "Install latest version of the channel.": "Install latest version of the channel.",
-    "Channel updated to version %s": "Channel updated to version %s"
+    "Channel updated to version %s": "Channel updated to version %s",
+    "access_token": "Access Token (optional)",
+    "authorize": "Authorize"
 }
