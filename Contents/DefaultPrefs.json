@@ -34,5 +34,12 @@
         "id":    "access_token",
         "label": "access_token",
         "type":  "text"
+    },
+    {
+        "id": "hide_offline",
+        "label": "hide_offline",
+        "type": "bool",
+        "default": "false"
     }
+
 ]

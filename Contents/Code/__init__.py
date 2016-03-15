@@ -278,7 +278,8 @@ def FollowedChannelsList(apiurl=None, limit=100):
         if name in streams:
             oc.add(stream_dir(streams[name]))  # live
         else:
-            oc.add(channel_dir(channel, offline=True))  # not live
+            if not Prefs['hide_offline']:
+                oc.add(channel_dir(channel, offline=True))  # not live
     # Sort the items
     if Prefs['following_order'] == 'view_count':  # viewers desc
         oc.objects.sort(key=lambda obj: int(obj.tagline.split(',')[-1]), reverse=True)

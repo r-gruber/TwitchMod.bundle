@@ -36,5 +36,6 @@
     "Install latest version of the channel.": "Install latest version of the channel.",
     "Channel updated to version %s": "Channel updated to version %s",
     "access_token": "Access Token (optional)",
-    "authorize": "Authorize"
+    "authorize": "Authorize",
+    "hide_offline": "Hide Offline Channels"
 }
