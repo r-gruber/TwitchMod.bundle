@@ -1,5 +1,6 @@
 # TwitchMod by Cory <babylonstudio@gmail.com>
 from sys import maxint as MAXINT
+import re
 from urllib import urlencode
 from updater import Updater
 from DumbTools import DumbKeyboard, DumbPrefs
@@ -17,7 +18,8 @@ ICONS = {'search':    R('ic_search_c.png'),
          'videos':    R('ic_videos_c.png'),
          'channels':  R('ic_channels_c.png'),
          'more':      R('ic_more_c.png'),
-         'settings':  R('ic_settings_c.png')}
+         'settings':  R('ic_settings_c.png'),
+         'authorize': R('ic_settings_c.png')}
 
 
 def Start():
@@ -55,38 +57,39 @@ def MainMenu():
         oc.add(PrefsObject(title=unicode(L('Preferences')), thumb=ICONS['settings']))
 
     if not Prefs['access_token']:
-        oc.add(DirectoryObject(key=Callback(twitch_authorize), title=L('authorize')))
+        oc.add(DirectoryObject(key=Callback(twitch_authorize),
+                               title=unicode(L('authorize')),
+                               thumb=ICONS['authorize']))
+
     return oc
 
 
 class APIError(Exception):
     def __init__(self, value):
         self.value = value
+
     def __str__(self):
         return repr(self.value)
 
 
 def twitch_authorize():
-    scopes =  ['user_read']
+    scopes = ['user_read']
     url = add_params(TWITCH_API_BASE + '/oauth2/authorize', {
         'client_id': TWITCH_CLIENT_ID,
         'response_type': 'token',
         'redirect_uri': 'http://localhost',
         'scope': '+'.join(scopes),
     })
-    Log.Debug(url)
+    Log.Debug('TWITCH: auth url: {}'.format(url))
     url_shortener = 'http://shoutkey.com/new?url=' + String.Quote(url)
     data = HTTP.Request(url_shortener)
-    surl = Regex('Your ShoutKey is:\n.*\n.*\n(.*)')
-    surl2 = Regex('href="([^"]+)"')
-    match = surl.search(data.content)
-    Log.Debug(match)
-    if match:
-        Log.Debug(match.groups()[0])
-        match2 = surl2.search(match.groups()[0])
-        if match2:
-            shortened_url = match2.groups()[0]
-
+    match = re.search(r'<a href="((https?:\/\/shoutkey.com)\/([^"]+))">\3<\/a>', data.content)
+    Log.Debug('url shortener match: {}'.format(match))
+    if match is None:
+        Log.Debug('no match.')
+        return error_message('url shortener', 'url shortener error')
+    Log.Debug(match.groups()[0])
+    shortened_url = match.groups()[0]
     oc = ObjectContainer()
     oc.add(DirectoryObject(key=None, title=shortened_url))
     return oc
@@ -94,7 +97,7 @@ def twitch_authorize():
 
 def api_request(endpoint, method='GET', params=None, cache_time=HTTP.CacheTime):
     """``endpoint`` is either the full url (provided by the api) or just the endpoint."""
-    url = add_params(TWITCH_API_BASE+endpoint if endpoint.startswith('/') else endpoint,
+    url = add_params(TWITCH_API_BASE + endpoint if endpoint.startswith('/') else endpoint,
                      params=params)
     try:
         data = JSON.ObjectFromURL(url, cacheTime=cache_time)
@@ -153,10 +156,10 @@ def get_streams(channels, cache_time=0):
     returns a dict, key is stream name, value is the 'stream object' json string
     """
     try:
-        res = api_request('/streams', params={'channel':','.join(channels)}, cache_time=cache_time)
+        res = api_request('/streams', params={'channel': ','.join(channels)}, cache_time=cache_time)
     except APIError:
         return {}
-    return {so['channel']['name']:so for so in res['streams']}
+    return {so['channel']['name']: so for so in res['streams']}
 
 
 def stream_strings(stream, title_layout=None):
@@ -175,12 +178,12 @@ def stream_strings(stream, title_layout=None):
     return (title_str(title_layout).format(**title_elements),
             "{}\nStarted {}\n{}\n\n{}".format(viewers_string, time_since(start_time, pretty=True),
                                               quality, status)
-           )
+            )
 
 
 def title_str(csv, separator='-', padding=1):
     """Returns a string to be formatted. (csv='{a},{b}', separator='-', padding=1)->'{a} - {b}'"""
-    return '{:^{p}}'.format(separator, p=len(separator)+padding*2).join(csv.split(','))
+    return '{:^{p}}'.format(separator, p=len(separator) + padding * 2).join(csv.split(','))
 
 
 def stream_dir(stream, title_layout=None):
@@ -243,7 +246,7 @@ def FavGames():
 def ChannelMenu(channel_name, stream=None):
     oc = ObjectContainer(title2=unicode(channel_name))
     if stream is not None:
-        oc.add(stream_vid(stream)) # Watch Live
+        oc.add(stream_vid(stream))  # Watch Live
     # Highlights
     oc.add(DirectoryObject(key=Callback(ChannelVodsList, name=channel_name, broadcasts=False),
                            title=unicode(L('highlights')), thumb=ICONS['videos']))
@@ -261,25 +264,25 @@ def FollowedChannelsList(apiurl=None, limit=100):
     """
     oc = ObjectContainer(title2=L('followed_channels'))
     try:
-        following = api_request(apiurl) if apiurl is not None else \
-                    api_request('/users/{}/follows/channels'.format(Prefs['username']),
-                                params={'limit':limit, 'sortby':'last_broadcast',
-                                        'direction':'desc'})
+        following = (api_request(apiurl) if apiurl is not None else
+                     api_request('/users/{}/follows/channels'.format(Prefs['username']),
+                                 params={'limit': limit, 'sortby': 'last_broadcast',
+                                         'direction': 'desc'}))
     except APIError:
         return error_message(oc.title2, L('followed_streams_list_error'))
     followed_channels = [channel['channel']['name'] for channel in following['follows']]
     # get a list of stream objects for followed streams so we can add Live status to the title
     streams = get_streams(followed_channels)
-    for item in following['follows']: # listing all the followed channels, both live and offline
+    for item in following['follows']:  # listing all the followed channels, both live and offline
         channel, name = item['channel'], item['channel']['name']
         if name in streams:
-            oc.add(stream_dir(streams[name])) # live
+            oc.add(stream_dir(streams[name]))  # live
         else:
-            oc.add(channel_dir(channel, offline=True)) # not live
+            oc.add(channel_dir(channel, offline=True))  # not live
     # Sort the items
-    if Prefs['following_order'] == 'view_count': # viewers desc
+    if Prefs['following_order'] == 'view_count':  # viewers desc
         oc.objects.sort(key=lambda obj: int(obj.tagline.split(',')[-1]), reverse=True)
-    else: # name asc
+    else:  # name asc
         oc.objects.sort(key=lambda obj: obj.tagline.split(',')[0])
     if len(oc) >= limit:
         oc.add(NextPageObject(key=Callback(FollowedChannelsList,
@@ -293,9 +296,9 @@ def ChannelVodsList(name=None, apiurl=None, broadcasts=True, limit=PAGE_LIMIT):
     """Returns videoClipObjects for ``channel``. ignore vods that aren't v type."""
     oc = ObjectContainer(title2=L('past_broadcasts') if broadcasts else L('highlights'))
     try:
-        videos = api_request(apiurl) if apiurl is not None else \
-                 api_request('/channels/{}/videos'.format(name),
-                             params={'limit':limit, 'broadcasts':str(broadcasts).lower()})
+        videos = (api_request(apiurl) if apiurl is not None else
+                  api_request('/channels/{}/videos'.format(name),
+                              params={'limit': limit, 'broadcasts': str(broadcasts).lower()}))
     except APIError:
         return error_message(oc.title2, "Error")
     ignored = 0
@@ -314,7 +317,7 @@ def ChannelVodsList(name=None, apiurl=None, broadcasts=True, limit=PAGE_LIMIT):
         oc.add(VideoClipObject(url=vod_url,
                                title=unicode(title),
                                summary=unicode(video['description']),
-                               duration=min(int(video['length'])*1000, MAXINT),
+                               duration=min(int(video['length']) * 1000, MAXINT),
                                thumb=Resource.ContentsOfURLWithFallback(video['preview'],
                                                                         fallback=ICONS['videos'])))
     if len(oc) + ignored >= limit:
@@ -328,8 +331,8 @@ def ChannelVodsList(name=None, apiurl=None, broadcasts=True, limit=PAGE_LIMIT):
 def TopStreamsList(apiurl=None, limit=PAGE_LIMIT):
     oc = ObjectContainer(title2=L('top_streams'), no_cache=True)
     try:
-        top = api_request(apiurl) if apiurl is not None else \
-              api_request('/streams', params={'limit': limit})
+        top = (api_request(apiurl) if apiurl is not None else
+               api_request('/streams', params={'limit': limit}))
     except APIError:
         return error_message(oc.title2, "Error")
     for stream in top['streams']:
@@ -343,8 +346,8 @@ def TopStreamsList(apiurl=None, limit=PAGE_LIMIT):
 @route(PREFIX + '/featured', limit=int)
 def FeaturedStreamsList(apiurl=None, limit=PAGE_LIMIT):
     oc = ObjectContainer(title2=L('featured_streams'), no_cache=True)
-    featured = api_request(apiurl) if apiurl is not None else \
-               api_request('/streams/featured', params={'limit': limit})
+    featured = (api_request(apiurl) if apiurl is not None else
+                api_request('/streams/featured', params={'limit': limit}))
     if featured is None:
         return error_message(oc.title2, "Error")
     for featured_stream in featured['featured']:
@@ -359,8 +362,8 @@ def FeaturedStreamsList(apiurl=None, limit=PAGE_LIMIT):
 def TopGamesList(apiurl=None, limit=PAGE_LIMIT):
     oc = ObjectContainer(title2=L('top_games'), no_cache=True)
     try:
-        games = api_request(apiurl) if apiurl is not None else \
-                api_request('/games/top', params={'limit': limit})
+        games = (api_request(apiurl) if apiurl is not None else
+                 api_request('/games/top', params={'limit': limit}))
     except APIError:
         return error_message(oc.title2, "Error")
     for game in games['top']:
@@ -381,8 +384,8 @@ def TopGamesList(apiurl=None, limit=PAGE_LIMIT):
 def ChannelsForGameList(game, apiurl=None, limit=PAGE_LIMIT):
     oc = ObjectContainer(title2=unicode(game), no_cache=True)
     try:
-        streams = api_request(apiurl) if apiurl is not None else \
-                  api_request('/streams', params={'limit': limit, 'game': game})
+        streams = (api_request(apiurl) if apiurl is not None else
+                   api_request('/streams', params={'limit': limit, 'game': game}))
     except APIError:
         return error_message(oc.title2, "Error")
     for stream in streams['streams']:
@@ -414,8 +417,8 @@ def SearchMenu():
 def SearchStreams(query, apiurl=None, limit=PAGE_LIMIT, title_layout=None):
     oc = ObjectContainer(title2=L('search'), no_cache=True)
     try:
-        results = api_request(apiurl) if apiurl is not None else \
-                  api_request('/search/streams', params={'query':query, 'limit':limit})
+        results = (api_request(apiurl) if apiurl is not None else
+                   api_request('/search/streams', params={'query': query, 'limit': limit}))
     except APIError:
         return error_message(oc.title2, "Error")
     if not results['streams']:
@@ -434,8 +437,8 @@ def SearchStreams(query, apiurl=None, limit=PAGE_LIMIT, title_layout=None):
 def SearchChannels(query, apiurl=None, limit=PAGE_LIMIT):
     oc = ObjectContainer(title2=L('search'), no_cache=True)
     try:
-        results = api_request(apiurl) if apiurl is not None else \
-                  api_request('/search/channels', params={'query':query, 'limit':limit})
+        results = (api_request(apiurl) if apiurl is not None else
+                   api_request('/search/channels', params={'query': query, 'limit': limit}))
     except APIError:
         return error_message(oc.title2, "Error")
     if not results['channels']:
@@ -454,9 +457,9 @@ def SearchGames(query, apiurl=None):
     """Returns a list of results from ``query``. This API endpoint has no paging"""
     oc = ObjectContainer(title2=L('search'), no_cache=True)
     try:
-        results = api_request(apiurl) if apiurl is not None else \
-                  api_request('/search/games', params={'query':query, 'type':'suggest',
-                                                       'live':'true'})
+        results = (api_request(apiurl) if apiurl is not None else
+                   api_request('/search/games', params={'query': query, 'type': 'suggest',
+                                                        'live': 'true'}))
     except APIError:
         return error_message(oc.title2, "Error")
     if not results['games']:
