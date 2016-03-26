@@ -73,6 +73,10 @@ class APIError(Exception):
 
 
 def twitch_authorize():
+    """Auth involves sending the user to a twitch URL where they go through the auth process,
+    which results in a token string. It doesn't seem reasonable to do this entire process in a plex
+    client. So we use a URL shortener to give the user an address to go to in a web browser
+    to complete the process, then enter the token they receive into the channels preferences."""
     scopes = ['user_read']
     url = add_params(TWITCH_API_BASE + '/oauth2/authorize', {
         'client_id': TWITCH_CLIENT_ID,
@@ -88,11 +92,10 @@ def twitch_authorize():
     if match is None:
         Log.Debug('no match.')
         return error_message('url shortener', 'url shortener error')
-    Log.Debug(match.groups()[0])
     shortened_url = match.groups()[0]
-    oc = ObjectContainer()
-    oc.add(DirectoryObject(key=None, title=shortened_url))
-    return oc
+    Log.Debug('TWITCH: shortened url: {}'.format(shortened_url))
+    # Present the URL with a Directory object that doesn't go anywhere.
+    return ObjectContainer(objects=[DirectoryObject(key=None, title=shortened_url)])
 
 
 def api_request(endpoint, method='GET', params=None, cache_time=HTTP.CacheTime):
@@ -177,8 +180,7 @@ def stream_strings(stream, title_layout=None):
                       'quality': quality}
     return (title_str(title_layout).format(**title_elements),
             "{}\nStarted {}\n{}\n\n{}".format(viewers_string, time_since(start_time, pretty=True),
-                                              quality, status)
-            )
+                                              quality, status))
 
 
 def title_str(csv, separator='-', padding=1):
@@ -201,12 +203,8 @@ def stream_dir(stream, title_layout=None):
 def stream_vid(stream, title_layout=None):
     """Returnss a VideoClipObject from a twitch stream object"""
     title, summary = stream_strings(stream, title_layout)
-    if Prefs['access_token']:
-        url = '1{}|{}'.format(Prefs['access_token'], stream['channel']['url'])
-    else:
-        url = '1' + stream['channel']['url']
     return VideoClipObject(
-        url=url,
+        url=SharedCodeService.shared.service_url(stream['channel']['url'], Prefs['access_token']),
         title=unicode(title), summary=unicode(summary),
         thumb=Resource.ContentsOfURLWithFallback(
             get_preview_image(stream['preview']['medium']), fallback=ICONS['videos']))
@@ -311,11 +309,7 @@ def ChannelVodsList(name=None, apiurl=None, broadcasts=True, limit=PAGE_LIMIT):
         vod_date = Datetime.ParseDate(video['recorded_at'])
         vod_title = video['title'] if video['title'] else L('untitled_broadcast')
         title = "{} - {}".format(vod_date.strftime('%a %b %d, %Y'), vod_title)
-        if Prefs['access_token']:
-            vod_url = '1{}|{}'.format(Prefs['access_token'], url)
-        else:
-            vod_url = '1' + url
-        oc.add(VideoClipObject(url=vod_url,
+        oc.add(VideoClipObject(url=SharedCodeService.shared.service_url(url, Prefs['access_token']),
                                title=unicode(title),
                                summary=unicode(video['description']),
                                duration=min(int(video['length']) * 1000, MAXINT),
@@ -397,7 +391,7 @@ def ChannelsForGameList(game, apiurl=None, limit=PAGE_LIMIT):
                               title=unicode(L('more')), thumb=ICONS['more']))
     return oc
 
-# Search Routes
+
 @route(PREFIX + '/search')
 def SearchMenu():
     """Returns a list of the different search methods"""

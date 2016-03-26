@@ -1,0 +1,16 @@
+def service_url(url, access_token=None):
+    """I'm using the service url to pass data to the url service. The 1 is to avoid
+    conflicting with the plexinc plugin."""
+    if not access_token or access_token is None:
+        return '1{url}'.format(url=url)
+    else:
+        return '1{token}|{url}'.format(token=access_token, url=url)
+
+
+def parse_service_url(url):
+    """Returns a tuple of the items in the service url. currently (url, token)"""
+    components = url[1:].split('|')
+    if len(components) == 1:
+        return (components[0], None)
+    else:
+        return (components[1], components[0])

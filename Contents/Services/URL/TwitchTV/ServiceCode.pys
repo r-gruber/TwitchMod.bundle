@@ -1,7 +1,8 @@
 from sys import maxint as MAXINT
 from collections import OrderedDict
 from time import time
-TOKEN_CACHE_TIME = 15 # tokens are valid for 15 minutes
+import shared
+TOKEN_CACHE_TIME = 15  # tokens are valid for 15 minutes
 STREAM_DATA = 'https://api.twitch.tv/kraken/streams/{channel_name}'
 STREAM_TOKEN = 'https://api.twitch.tv/api/channels/{channel_name}/access_token'
 STREAM_URL = ('http://usher.twitch.tv/api/channel/hls/{channel_name}.m3u8'
@@ -38,8 +39,10 @@ def MetadataObjectForURL(url):
         # make the thumbnail only valid for ~100 seconds
         thumb = "{}?t={:.0f}".format(stream_info['preview']['large'], round(time(), -2))
         return VideoClipObject(
-            title=u'%s - %s' % (channel_info['display_name'], channel_info.get('game', '?')),
-            summary=u'%s\n\n%d viewers' % (channel_info.get('status', '?'), stream_info['viewers']),
+            title=unicode('{} - {}'.format(channel_info['display_name'],
+                                           channel_info.get('game', '?'))),
+            summary=unicode('{}\n\n{} viewers'.format(channel_info.get('status', '?'),
+                                                      stream_info['viewers'])),
             thumb=Resource.ContentsOfURLWithFallback(thumb)
         )
     elif is_vod(url):
@@ -112,16 +115,14 @@ def MediaObjectsForURL(url):
 
 @indirect
 def PlayHLS(url, quality=None, **kwargs):
-    if '|' in url:
-        oauth = url.split('|')[0][1:]
-    else:
-        oauth = ''
+    url, access_token = shared.parse_service_url(url)
+
     if is_stream(url):
         user_id = get_user_id(url)
         try:  # get a token
             turl = STREAM_TOKEN.format(channel_name=user_id)
-            if oauth:
-                turl += '?oauth_token=' + oauth
+            if access_token is not None:
+                turl += '?oauth_token=' + access_token
             token = JSON.ObjectFromURL(turl, cacheTime=TOKEN_CACHE_TIME)
             Log.Debug('token: {}'.format(token))
         except Exception:
@@ -134,8 +135,8 @@ def PlayHLS(url, quality=None, **kwargs):
         vod_id = get_vod_id(url)
         try:  # get a token
             turl = VOD_TOKEN.format(vod_id=vod_id)
-            if oauth:
-                turl += '?oauth_token=' + oauth
+            if access_token is not None:
+                turl += '?oauth_token=' + access_token
             token = JSON.ObjectFromURL(turl, cacheTime=TOKEN_CACHE_TIME)
             Log.Debug('token: {}'.format(token))
         except Exception:
