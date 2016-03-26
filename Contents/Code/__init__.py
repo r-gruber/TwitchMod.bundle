@@ -65,37 +65,7 @@ def MainMenu():
 
 
 class APIError(Exception):
-    def __init__(self, value):
-        self.value = value
-
-    def __str__(self):
-        return repr(self.value)
-
-
-def twitch_authorize():
-    """Auth involves sending the user to a twitch URL where they go through the auth process,
-    which results in a token string. It doesn't seem reasonable to do this entire process in a plex
-    client. So we use a URL shortener to give the user an address to go to in a web browser
-    to complete the process, then enter the token they receive into the channels preferences."""
-    scopes = ['user_read']
-    url = add_params(TWITCH_API_BASE + '/oauth2/authorize', {
-        'client_id': TWITCH_CLIENT_ID,
-        'response_type': 'token',
-        'redirect_uri': 'http://localhost',
-        'scope': '+'.join(scopes),
-    })
-    Log.Debug('TWITCH: auth url: {}'.format(url))
-    url_shortener = 'http://shoutkey.com/new?url=' + String.Quote(url)
-    data = HTTP.Request(url_shortener)
-    match = re.search(r'<a href="((https?:\/\/shoutkey.com)\/([^"]+))">\3<\/a>', data.content)
-    Log.Debug('url shortener match: {}'.format(match))
-    if match is None:
-        Log.Debug('no match.')
-        return error_message('url shortener', 'url shortener error')
-    shortened_url = match.groups()[0]
-    Log.Debug('TWITCH: shortened url: {}'.format(shortened_url))
-    # Present the URL with a Directory object that doesn't go anywhere.
-    return ObjectContainer(objects=[DirectoryObject(key=None, title=shortened_url)])
+    pass
 
 
 def api_request(endpoint, method='GET', params=None, cache_time=HTTP.CacheTime):
@@ -465,3 +435,30 @@ def SearchGames(query, apiurl=None):
                                thumb=Resource.ContentsOfURLWithFallback(
                                    game['box']['medium'], fallback=ICONS['videos'])))
     return oc
+
+
+@route(PREFIX + '/authorize')
+def twitch_authorize():
+    """Auth involves sending the user to a twitch URL where they go through the auth process,
+    which results in a token string. It doesn't seem reasonable to do this entire process in a plex
+    client. So we use a URL shortener to give the user an address to go to in a web browser
+    to complete the process, then enter the token they receive into the channels preferences."""
+    scopes = ['user_read']
+    url = add_params(TWITCH_API_BASE + '/oauth2/authorize', {
+        'client_id': TWITCH_CLIENT_ID,
+        'response_type': 'token',
+        'redirect_uri': 'http://localhost',
+        'scope': '+'.join(scopes),
+    })
+    Log.Debug('TWITCH: auth url: {}'.format(url))
+    url_shortener = 'http://shoutkey.com/new?url=' + String.Quote(url)
+    data = HTTP.Request(url_shortener)
+    match = re.search(r'<a href="((https?:\/\/shoutkey.com)\/([^"]+))">\3<\/a>', data.content)
+    Log.Debug('url shortener match: {}'.format(match))
+    if match is None:
+        Log.Debug('no match.')
+        return error_message('url shortener', 'url shortener error')
+    shortened_url = match.groups()[0]
+    Log.Debug('TWITCH: shortened url: {}'.format(shortened_url))
+    # Present the URL with a Directory object that doesn't go anywhere.
+    return ObjectContainer(objects=[DirectoryObject(key=None, title=shortened_url)])

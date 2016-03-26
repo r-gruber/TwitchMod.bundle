@@ -2,7 +2,7 @@ from sys import maxint as MAXINT
 from collections import OrderedDict
 from time import time
 import shared
-TOKEN_CACHE_TIME = 15  # tokens are valid for 15 minutes
+TOKEN_CACHE_TIME = 0  # tokens are valid for 15 minutes
 STREAM_DATA = 'https://api.twitch.tv/kraken/streams/{channel_name}'
 STREAM_TOKEN = 'https://api.twitch.tv/api/channels/{channel_name}/access_token'
 STREAM_URL = ('http://usher.twitch.tv/api/channel/hls/{channel_name}.m3u8'
@@ -125,7 +125,8 @@ def PlayHLS(url, quality=None, **kwargs):
                 turl += '?oauth_token=' + access_token
             token = JSON.ObjectFromURL(turl, cacheTime=TOKEN_CACHE_TIME)
             Log.Debug('token: {}'.format(token))
-        except Exception:
+        except Exception as e:
+            Log.Error('TWITCH: PlayHLS: {}'.format(e))
             raise Ex.MediaNotAvailable
         else:
             final_url = STREAM_URL.format(channel_name=user_id,
@@ -139,7 +140,8 @@ def PlayHLS(url, quality=None, **kwargs):
                 turl += '?oauth_token=' + access_token
             token = JSON.ObjectFromURL(turl, cacheTime=TOKEN_CACHE_TIME)
             Log.Debug('token: {}'.format(token))
-        except Exception:
+        except Exception as e:
+            Log.Error('TWITCH: PlayHLS: {}'.format(e))
             raise Ex.MediaNotAvailable
         else:
             final_url = VOD_URL.format(vod_id=vod_id,
