@@ -1,7 +1,7 @@
 # DumbTools for Plex v1.1 by Cory <babylonstudio@gmail.com>
 
 class DumbKeyboard:
-    clients = ['Plex for iOS', 'Plex Media Player', 'Plex Web']
+    clients = ['Plex for iOS', 'Plex Media Player']
     KEYS = list('abcdefghijklmnopqrstuvwxyz1234567890-=;[]\\\',./')
     SHIFT_KEYS = list('ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()_+:{}|\"<>?')
 
@@ -103,7 +103,7 @@ class DumbPrefs:
     def GetHeaders(self):
         headers = Request.Headers
         headers['Connection'] = 'close'
-        return headers        
+        return headers
 
     def GetPrefs(self):
         try:
