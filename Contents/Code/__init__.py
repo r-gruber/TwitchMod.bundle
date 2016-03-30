@@ -57,7 +57,7 @@ def MainMenu():
         oc.add(PrefsObject(title=unicode(L('Preferences')), thumb=ICONS['settings']))
 
     if not Prefs['access_token']:
-        oc.add(DirectoryObject(key=Callback(twitch_authorize),
+        oc.add(DirectoryObject(key=Callback(Authorize),
                                title=unicode(L('authorize')),
                                thumb=ICONS['authorize']))
 
@@ -121,7 +121,7 @@ def get_preview_image(url, cache_time=120):
     now = Datetime.TimestampFromDatetime(Datetime.Now())
     if now - Dict['last_update'] > cache_time:
         Dict['last_update'] = now
-    return "{}?t={}".format(url, Dict['last_update'])
+    return "{}?t={:.0f}".format(url, Dict['last_update'])
 
 
 def get_streams(channels, cache_time=0):
@@ -438,7 +438,7 @@ def SearchGames(query, apiurl=None):
 
 
 @route(PREFIX + '/authorize')
-def twitch_authorize():
+def Authorize():
     """Auth involves sending the user to a twitch URL where they go through the auth process,
     which results in a token string. It doesn't seem reasonable to do this entire process in a plex
     client. So we use a URL shortener to give the user an address to go to in a web browser
@@ -461,4 +461,5 @@ def twitch_authorize():
     shortened_url = match.groups()[0]
     Log.Debug('TWITCH: shortened url: {}'.format(shortened_url))
     # Present the URL with a Directory object that doesn't go anywhere.
-    return ObjectContainer(objects=[DirectoryObject(key=None, title=shortened_url)])
+    return ObjectContainer(objects=[DirectoryObject(key=Callback(error_message, error='authorize', message='...'),
+                                                    title=shortened_url)])
