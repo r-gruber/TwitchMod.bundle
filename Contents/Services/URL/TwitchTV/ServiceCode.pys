@@ -2,14 +2,13 @@ from sys import maxint as MAXINT
 from collections import OrderedDict
 from time import time
 import shared
-TOKEN_CACHE_TIME = 0  # tokens are valid for 15 minutes
 STREAM_DATA = 'https://api.twitch.tv/kraken/streams/{channel_name}'
-STREAM_TOKEN = 'https://api.twitch.tv/api/channels/{channel_name}/access_token'
-STREAM_URL = ('http://usher.twitch.tv/api/channel/hls/{channel_name}.m3u8'
+STREAM_TOKEN = 'https://api.twitch.tv/api/channels/{id}/access_token'
+STREAM_URL = ('http://usher.twitch.tv/api/channel/hls/{id}.m3u8'
               '?token={token}&sig={sig}&allow_source=true')
 VOD_DATA = 'https://api.twitch.tv/kraken/videos/{vod_type}{vod_id}'
-VOD_TOKEN = 'https://api.twitch.tv/api/vods/{vod_id}/access_token'
-VOD_URL = ('http://usher.twitch.tv/vod/{vod_id}'
+VOD_TOKEN = 'https://api.twitch.tv/api/vods/{id}/access_token'
+VOD_URL = ('http://usher.twitch.tv/vod/{id}'
            '?nauth={token}&nauthsig={sig}&allow_source=true')
 ACCEPTED_VOD_TYPES = ["v"]
 # arbitrary resolution values so the client can distinguish them
@@ -26,10 +25,11 @@ def NormalizeURL(url):
 
 def MetadataObjectForURL(url):
     if is_stream(url):
-        user_id = get_user_id(url)
+        user_id = get_id(url)
         try:
             video = JSON.ObjectFromURL(STREAM_DATA.format(channel_name=user_id), cacheTime=0)
-        except Exception:
+        except Exception as e:
+            Log.Error('TWITCH: Unable to get stream metadata.\n' + str(e))
             raise Ex.MediaNotAvailable
         else:
             if video['stream'] is None:
@@ -46,12 +46,13 @@ def MetadataObjectForURL(url):
             thumb=Resource.ContentsOfURLWithFallback(thumb)
         )
     elif is_vod(url):
-        vod_id = get_vod_id(url)
+        vod_id = get_id(url)
         vod_type = get_vod_type(url)
         try:
             video = JSON.ObjectFromURL(VOD_DATA.format(vod_type=vod_type, vod_id=vod_id),
                                        cacheTime=0)
-        except Exception:
+        except Exception as e:
+            Log.Error('TWITCH: Unable to get vod metadata.\n' + str(e))
             raise Ex.MediaNotAvailable
         else:
             if 'error' in video:
@@ -69,9 +70,21 @@ def MetadataObjectForURL(url):
 def MediaObjectsForURL(url):
     quality_option = (Prefs['stream_quality_selection'] if is_stream(url) else
                       Prefs['vod_quality_selection'])
-    if is_vod(url):
-        if get_vod_type(url) not in ACCEPTED_VOD_TYPES:
-            raise Ex.MediaNotAvailable
+    if is_vod(url) and get_vod_type(url) not in ACCEPTED_VOD_TYPES:
+        Log.Error('TWITCH: this type of vod is not supported.')
+        raise Ex.MediaNotAvailable
+
+    # Plex web clients cross domain issue... taken from iplayer
+    Log.Info('TWITCH: Product/Platform: {} - {}'.format(Client.Product, Client.Platform))
+    if Client.Product in ['Plex Web'] and Client.Platform not in ['Safari']:
+        return [
+            MediaObject(
+                parts=[PartObject(key=HTTPLiveStreamURL(Callback(PlayWebClient, url=url)))],
+                audio_channels=2,
+                optimized_for_streaming=True
+            )
+        ]
+
     if quality_option == "Manual":
         return [
             MediaObject(
@@ -116,49 +129,62 @@ def MediaObjectsForURL(url):
 @indirect
 def PlayHLS(url, quality=None, **kwargs):
     url, access_token = shared.parse_service_url(url)
-
-    if is_stream(url):
-        user_id = get_user_id(url)
-        try:  # get a token
-            turl = STREAM_TOKEN.format(channel_name=user_id)
-            if access_token is not None:
-                turl += '?oauth_token=' + access_token
-            token = JSON.ObjectFromURL(turl, cacheTime=TOKEN_CACHE_TIME)
-            Log.Debug('token: {}'.format(token))
-        except Exception as e:
-            Log.Error('TWITCH: PlayHLS: {}'.format(e))
-            raise Ex.MediaNotAvailable
-        else:
-            final_url = STREAM_URL.format(channel_name=user_id,
-                                          token=String.Quote(token['token']),
-                                          sig=String.Quote(token['sig']))
-    elif is_vod(url):
-        vod_id = get_vod_id(url)
-        try:  # get a token
-            turl = VOD_TOKEN.format(vod_id=vod_id)
-            if access_token is not None:
-                turl += '?oauth_token=' + access_token
-            token = JSON.ObjectFromURL(turl, cacheTime=TOKEN_CACHE_TIME)
-            Log.Debug('token: {}'.format(token))
-        except Exception as e:
-            Log.Error('TWITCH: PlayHLS: {}'.format(e))
-            raise Ex.MediaNotAvailable
-        else:
-            final_url = VOD_URL.format(vod_id=vod_id,
-                                       token=String.Quote(token['token']),
-                                       sig=String.Quote(token['sig']))
+    playlist_url = get_playlist(url, access_token)
+    if quality is None:
+        final_url = playlist_url
     else:
-        raise Ex.MediaNotAvailable
-
-    if quality is not None:
         Log("TWITCH: Quality = " + quality)
-        playlist_contents = HTTP.Request(final_url, cacheTime=0).content
+        try:
+            playlist_contents = HTTP.Request(playlist_url, cacheTime=0).content
+        except Ex.HTTPError as e:
+            Log.Error('TWITCH: PlayHLS: {} - {}'.format(e.code, e.reason))
+            if e.code == 403:
+                Log.Error(('TWITCH: PlayHLS: You are not authorized to view this video. '
+                           'You must be subscribed to this channel. '
+                           'Check your auth token in the channel preferences.'))
+            raise Ex.MediaNotAuthorized
         final_url = get_twitch_quality(playlist_contents, quality)
 
     Log("TWITCH: Final Url = " + final_url)
     return IndirectResponse(VideoClipObject, key=HTTPLiveStreamURL(final_url))
 
+
+def PlayWebClient(url):
+    """works on chrome/firefox when accessing localhost:32400 but not 127.0.0.1:32400.
+    app.plex.tv also gets cross domain problem."""
+    url, access_token = shared.parse_service_url(url)
+    playlist_url = get_playlist(url, access_token)
+    return HTTP.Request(playlist_url).content
+
+
 ################################################################################
+def get_playlist(url, access_token=None):
+    """Given a valid twitch url and optional oauth token, return url to the master playlist."""
+    item_id = get_id(url)
+    token_url, video_url = (STREAM_TOKEN, STREAM_URL) if is_stream(url) else (VOD_TOKEN, VOD_URL)
+    try:
+        turl = token_url.format(id=item_id)
+        if access_token is not None:
+            turl += '?oauth_token=' + access_token
+        token = JSON.ObjectFromURL(turl, cacheTime=0)
+        Log.Debug('token: {}'.format(token))
+    except Exception as e:
+        Log.Error('TWITCH: PlayHLS: {}'.format(e))
+        raise Ex.MediaNotAvailable
+    else:
+        return video_url.format(id=item_id,
+                                token=String.Quote(token['token']),
+                                sig=String.Quote(token['sig']))
+
+
+def get_id(url):
+    if is_stream(url):
+        return url.split('/')[-1]
+    elif is_vod(url):
+        return url.split('/')[-1]
+    else:
+        Log.Error('TWITCH: cant get id from url.')
+        raise Ex.MediaNotAvailable
 
 
 def is_stream(url):
@@ -167,14 +193,6 @@ def is_stream(url):
 
 def is_vod(url):
     return len(url.split('/')) == 6
-
-
-def get_user_id(url):
-    return url.split('/')[-1]
-
-
-def get_vod_id(url):
-    return url.split('/')[-1]
 
 
 def get_vod_type(url):
