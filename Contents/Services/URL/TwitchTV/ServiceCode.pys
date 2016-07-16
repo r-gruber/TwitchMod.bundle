@@ -79,7 +79,7 @@ def MediaObjectsForURL(url):
     if Client.Product in ['Plex Web'] and Client.Platform not in ['Safari']:
         return [
             MediaObject(
-                parts=[PartObject(key=HTTPLiveStreamURL(Callback(PlayWebClient, url=url)))],
+                parts=[PartObject(key=HTTPLiveStreamURL(Callback(PlayWebClient, url=url, ext='m3u8')))],
                 audio_channels=2,
                 optimized_for_streaming=True
             )
@@ -121,7 +121,7 @@ def MediaObjectsForURL(url):
                 audio_codec=AudioCodec.AAC,
                 audio_channels=2,
                 optimized_for_streaming=True,
-                parts=[PartObject(key=Callback(PlayHLS, url=url, ext='m3u8'))]
+                parts=[PartObject(key=HTTPLiveStreamURL(Callback(PlayWebClient, url=url, ext='m3u8')))]
             )
         ]
 
@@ -149,12 +149,12 @@ def PlayHLS(url, quality=None, **kwargs):
     return IndirectResponse(VideoClipObject, key=HTTPLiveStreamURL(final_url))
 
 
-def PlayWebClient(url):
+def PlayWebClient(url, **kwargs):
     """works on chrome/firefox when accessing localhost:32400 but not 127.0.0.1:32400.
     app.plex.tv also gets cross domain problem."""
     url, access_token = shared.parse_service_url(url)
     playlist_url = get_playlist(url, access_token)
-    return HTTP.Request(playlist_url).content
+    return HTTP.Request(playlist_url, cacheTime=0).content
 
 
 ################################################################################
