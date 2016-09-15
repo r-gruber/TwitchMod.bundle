@@ -12,5 +12,11 @@
         "label": "VOD Quality",
         "values": ["Automatic", "Manual", "Source", "High", "Medium", "Low", "Mobile"],
         "default": "Automatic"
+    },
+    {
+        "id": "proxy_playlist",
+        "type": "bool",
+        "label": "Proxy Playlists",
+        "default": false
     }
 ]

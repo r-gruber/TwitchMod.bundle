@@ -10,6 +10,7 @@ VOD_DATA = 'https://api.twitch.tv/kraken/videos/{vod_type}{vod_id}'
 VOD_TOKEN = 'https://api.twitch.tv/api/vods/{id}/access_token'
 VOD_URL = ('http://usher.twitch.tv/vod/{id}'
            '?nauth={token}&nauthsig={sig}&allow_source=true')
+TWITCH_CLIENT_ID = 'r797t9e3qhgxayiisuqdxxkh5tj7mlz'
 ACCEPTED_VOD_TYPES = ["v"]
 # arbitrary resolution values so the client can distinguish them
 HLS_RESOLUTIONS = OrderedDict([("Source", 1080),
@@ -27,7 +28,7 @@ def MetadataObjectForURL(url):
     if is_stream(url):
         user_id = get_id(url)
         try:
-            video = JSON.ObjectFromURL(STREAM_DATA.format(channel_name=user_id), cacheTime=0)
+            video = JSON.ObjectFromURL(STREAM_DATA.format(channel_name=user_id), cacheTime=0, headers={'Client-ID': TWITCH_CLIENT_ID})
         except Exception as e:
             Log.Error('TWITCH: Unable to get stream metadata.\n' + str(e))
             raise Ex.MediaNotAvailable
@@ -50,7 +51,7 @@ def MetadataObjectForURL(url):
         vod_type = get_vod_type(url)
         try:
             video = JSON.ObjectFromURL(VOD_DATA.format(vod_type=vod_type, vod_id=vod_id),
-                                       cacheTime=0)
+                                       cacheTime=0, headers={'Client-ID': TWITCH_CLIENT_ID})
         except Exception as e:
             Log.Error('TWITCH: Unable to get vod metadata.\n' + str(e))
             raise Ex.MediaNotAvailable
@@ -121,7 +122,9 @@ def MediaObjectsForURL(url):
                 audio_codec=AudioCodec.AAC,
                 audio_channels=2,
                 optimized_for_streaming=True,
-                parts=[PartObject(key=HTTPLiveStreamURL(Callback(PlayWebClient, url=url, ext='m3u8')))]
+                parts=[PartObject(
+                    key=(HTTPLiveStreamURL(Callback(PlayWebClient, url=url, ext='m3u8')) if Prefs['proxy_playlist'] else
+                         Callback(PlayHLS, url=url, ext='m3u8')))]
             )
         ]
 
@@ -166,7 +169,7 @@ def get_playlist(url, access_token=None):
         turl = token_url.format(id=item_id)
         if access_token is not None:
             turl += '?oauth_token=' + access_token
-        token = JSON.ObjectFromURL(turl, cacheTime=0)
+        token = JSON.ObjectFromURL(turl, cacheTime=0, headers={'Client-ID': TWITCH_CLIENT_ID})
         Log.Debug('token: {}'.format(token))
     except Exception as e:
         Log.Error('TWITCH: PlayHLS: {}'.format(e))

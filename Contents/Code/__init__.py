@@ -73,7 +73,7 @@ def api_request(endpoint, method='GET', params=None, cache_time=HTTP.CacheTime):
     url = add_params(TWITCH_API_BASE + endpoint if endpoint.startswith('/') else endpoint,
                      params=params)
     try:
-        data = JSON.ObjectFromURL(url, cacheTime=cache_time)
+        data = JSON.ObjectFromURL(url, cacheTime=cache_time, headers={'Client-ID': TWITCH_CLIENT_ID})
     except Exception as e:
         Log.Error("TWITCH: API request failed. {} - {}".format(e.message, e.args))
         raise APIError(str(e))
