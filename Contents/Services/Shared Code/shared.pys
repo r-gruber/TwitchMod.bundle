@@ -14,3 +14,9 @@ def parse_service_url(url):
         return (components[0], None)
     else:
         return (components[1], components[0])
+
+
+def format_seconds_to_hhmmss(seconds):
+    m, s = divmod(seconds, 60)
+    h, m = divmod(m, 60)
+    return "%d:%02d:%02d" % (h, m, s)

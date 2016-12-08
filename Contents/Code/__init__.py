@@ -279,9 +279,11 @@ def ChannelVodsList(name=None, apiurl=None, broadcasts=True, limit=PAGE_LIMIT):
         vod_date = Datetime.ParseDate(video['recorded_at'])
         vod_title = video['title'] if video['title'] else L('untitled_broadcast')
         title = "{} - {}".format(vod_date.strftime('%a %b %d, %Y'), vod_title)
+        summary = "{} - {}".format(SharedCodeService.shared.format_seconds_to_hhmmss(int(video['length'])),
+                                   video['description'])
         oc.add(VideoClipObject(url=SharedCodeService.shared.service_url(url, Prefs['access_token']),
                                title=unicode(title),
-                               summary=unicode(video['description']),
+                               summary=unicode(summary),
                                duration=min(int(video['length']) * 1000, MAXINT),
                                thumb=Resource.ContentsOfURLWithFallback(video['preview'],
                                                                         fallback=ICONS['videos'])))
