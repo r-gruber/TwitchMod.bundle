@@ -33,7 +33,7 @@ def Start():
 
 
 @handler(PREFIX, NAME, ICON, ART)
-def MainMenu():
+def MainMenu(**kwargs):
     oc = ObjectContainer(no_cache=True)
     Updater(PREFIX + '/updater', oc)
     oc.add(DirectoryObject(key=Callback(FeaturedStreamsList),
@@ -165,7 +165,7 @@ def stream_dir(stream, title_layout=None):
         key=Callback(ChannelMenu, channel_name=stream['channel']['name'],
                      stream=stream),
         title=unicode(title), summary=unicode(summary),
-        tagline='{},{}'.format(stream['channel']['display_name'], stream['viewers']),
+        tagline=unicode('{},{}'.format(stream['channel']['display_name'], stream['viewers'])),
         thumb=Resource.ContentsOfURLWithFallback(
             get_preview_image(stream['preview']['medium']), fallback=ICONS['videos']))
 
@@ -190,14 +190,14 @@ def channel_dir(channel, offline=False):
     return DirectoryObject(
         key=Callback(ChannelMenu, channel_name=name, stream=None),
         title=unicode(title), summary=unicode(status),
-        tagline='{},{}'.format(display_name, 0),
+        tagline=unicode('{},{}'.format(display_name, 0)),
         thumb=Resource.ContentsOfURLWithFallback(logo_img, fallback=ICONS['videos']))
 
 ####################################################################################################
 # ROUTES
 ####################################################################################################
 @route(PREFIX + '/favourite/games')
-def FavGames():
+def FavGames(**kwargs):
     oc = ObjectContainer(title2=unicode(L('favourite_games')))
     try:
         games = Prefs['favourite_games'].split(',')
@@ -211,7 +211,7 @@ def FavGames():
 
 
 @route(PREFIX + '/channel/{channel_name}/menu', stream=dict)
-def ChannelMenu(channel_name, stream=None):
+def ChannelMenu(channel_name, stream=None, **kwargs):
     oc = ObjectContainer(title2=unicode(channel_name))
     if stream is not None:
         oc.add(stream_vid(stream))  # Watch Live
@@ -225,7 +225,7 @@ def ChannelMenu(channel_name, stream=None):
 
 
 @route(PREFIX + '/following', limit=int)
-def FollowedChannelsList(apiurl=None, limit=100):
+def FollowedChannelsList(apiurl=None, limit=100, **kwargs):
     """Returns a list of followed channels. Two requests are made in this route:
     1. get 'follow' objects, which contains the information for the channels
     2. get 'stream' objects, which contains info about the stream if its live
@@ -261,7 +261,7 @@ def FollowedChannelsList(apiurl=None, limit=100):
 
 
 @route(PREFIX + '/channel/vods', broadcasts=bool, limit=int)
-def ChannelVodsList(name=None, apiurl=None, broadcasts=True, limit=PAGE_LIMIT):
+def ChannelVodsList(name=None, apiurl=None, broadcasts=True, limit=PAGE_LIMIT, **kwargs):
     """Returns videoClipObjects for ``channel``. ignore vods that aren't v type."""
     oc = ObjectContainer(title2=L('past_broadcasts') if broadcasts else L('highlights'))
     try:
@@ -293,7 +293,7 @@ def ChannelVodsList(name=None, apiurl=None, broadcasts=True, limit=PAGE_LIMIT):
 
 
 @route(PREFIX + '/topstreams', limit=int)
-def TopStreamsList(apiurl=None, limit=PAGE_LIMIT):
+def TopStreamsList(apiurl=None, limit=PAGE_LIMIT, **kwargs):
     oc = ObjectContainer(title2=L('top_streams'), no_cache=True)
     try:
         top = (api_request(apiurl) if apiurl is not None else
@@ -309,7 +309,7 @@ def TopStreamsList(apiurl=None, limit=PAGE_LIMIT):
 
 
 @route(PREFIX + '/featured', limit=int)
-def FeaturedStreamsList(apiurl=None, limit=PAGE_LIMIT):
+def FeaturedStreamsList(apiurl=None, limit=PAGE_LIMIT, **kwargs):
     oc = ObjectContainer(title2=L('featured_streams'), no_cache=True)
     featured = (api_request(apiurl) if apiurl is not None else
                 api_request('/streams/featured', params={'limit': limit}))
@@ -324,7 +324,7 @@ def FeaturedStreamsList(apiurl=None, limit=PAGE_LIMIT):
 
 
 @route(PREFIX + '/games', limit=int)
-def TopGamesList(apiurl=None, limit=PAGE_LIMIT):
+def TopGamesList(apiurl=None, limit=PAGE_LIMIT,  **kwargs):
     oc = ObjectContainer(title2=L('top_games'), no_cache=True)
     try:
         games = (api_request(apiurl) if apiurl is not None else
@@ -346,7 +346,7 @@ def TopGamesList(apiurl=None, limit=PAGE_LIMIT):
 
 
 @route(PREFIX + '/channel', limit=int)
-def ChannelsForGameList(game, apiurl=None, limit=PAGE_LIMIT):
+def ChannelsForGameList(game, apiurl=None, limit=PAGE_LIMIT,  **kwargs):
     oc = ObjectContainer(title2=unicode(game), no_cache=True)
     try:
         streams = (api_request(apiurl) if apiurl is not None else
@@ -363,7 +363,7 @@ def ChannelsForGameList(game, apiurl=None, limit=PAGE_LIMIT):
 
 
 @route(PREFIX + '/search')
-def SearchMenu():
+def SearchMenu(**kwargs):
     """Returns a list of the different search methods"""
     search_routes = {'streams': SearchStreams, 'channels': SearchChannels, 'games': SearchGames}
     oc = ObjectContainer(title2=L('search'))
@@ -379,7 +379,7 @@ def SearchMenu():
 
 
 @route(PREFIX + '/search/streams', limit=int)
-def SearchStreams(query, apiurl=None, limit=PAGE_LIMIT, title_layout=None):
+def SearchStreams(query, apiurl=None, limit=PAGE_LIMIT, title_layout=None, **kwargs):
     oc = ObjectContainer(title2=L('search'), no_cache=True)
     try:
         results = (api_request(apiurl) if apiurl is not None else
@@ -399,7 +399,7 @@ def SearchStreams(query, apiurl=None, limit=PAGE_LIMIT, title_layout=None):
 
 
 @route(PREFIX + '/search/channels', limit=int)
-def SearchChannels(query, apiurl=None, limit=PAGE_LIMIT):
+def SearchChannels(query, apiurl=None, limit=PAGE_LIMIT, **kwargs):
     oc = ObjectContainer(title2=L('search'), no_cache=True)
     try:
         results = (api_request(apiurl) if apiurl is not None else
@@ -418,7 +418,7 @@ def SearchChannels(query, apiurl=None, limit=PAGE_LIMIT):
 
 
 @route(PREFIX + '/search/games')
-def SearchGames(query, apiurl=None):
+def SearchGames(query, apiurl=None, **kwargs):
     """Returns a list of results from ``query``. This API endpoint has no paging"""
     oc = ObjectContainer(title2=L('search'), no_cache=True)
     try:
@@ -438,7 +438,7 @@ def SearchGames(query, apiurl=None):
 
 
 @route(PREFIX + '/authorize')
-def Authorize():
+def Authorize(**kwargs):
     """Auth involves sending the user to a twitch URL where they go through the auth process,
     which results in a token string. It doesn't seem reasonable to do this entire process in a plex
     client. So we use a URL shortener to give the user an address to go to in a web browser
