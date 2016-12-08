@@ -212,6 +212,7 @@ def parse_m3u(playlist):
         if name_pos < 0:
             continue
         name = line[name_pos + 6:].split('"')[0]
+        name = "Source" if name.endswith(" - source") else name
         url = lines[i + 2] if i + 2 < len(lines) else None
         parsed[name] = url
     return parsed
