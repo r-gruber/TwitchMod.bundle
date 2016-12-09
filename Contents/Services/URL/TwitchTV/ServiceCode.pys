@@ -120,9 +120,7 @@ def MediaObjectsForURL(url):
                 audio_codec=AudioCodec.AAC,
                 audio_channels=2,
                 optimized_for_streaming=True,
-                parts=[PartObject(
-                    key=(HTTPLiveStreamURL(Callback(PlayWebClient, url=url, ext='m3u8')) if Prefs['proxy_playlist'] else
-                         Callback(PlayHLS, url=url, ext='m3u8')))]
+                parts=[PartObject(key=Callback(PlayHLS, url=url, ext='m3u8'))]
             )
         ]
 
