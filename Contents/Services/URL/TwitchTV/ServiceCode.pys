@@ -80,9 +80,6 @@ def MetadataObjectForURL(url):
 def MediaObjectsForURL(url):
     quality_option = (Prefs['stream_quality_selection'] if is_stream(url) else
                       Prefs['vod_quality_selection'])
-    if is_vod(url) and get_vod_type(url) not in ACCEPTED_VOD_TYPES:
-        Log.Error('TWITCH: this type of vod is not supported.')
-        raise Ex.MediaNotAvailable
 
     if quality_option == "Manual":
         return [
@@ -183,7 +180,7 @@ def is_stream(url):
 
 
 def is_vod(url):
-    return len(url.split('/')) == 6
+    return 'videos' in url
 
 
 def get_vod_type(url):

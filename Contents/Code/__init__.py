@@ -272,10 +272,7 @@ def ChannelVodsList(name=None, apiurl=None, broadcasts=True, limit=PAGE_LIMIT, *
         return error_message(oc.title2, "Error")
     ignored = 0
     for video in videos['videos']:
-        url, vod_type = video['url'], video['url'].split('/')[-2]
-        if vod_type != "v":
-            ignored += 1
-            continue
+        url = video['url']
         vod_date = Datetime.ParseDate(video['recorded_at'])
         vod_title = video['title'] if video['title'] else L('untitled_broadcast')
         title = "{} - {}".format(vod_date.strftime('%a %b %d, %Y'), vod_title)
