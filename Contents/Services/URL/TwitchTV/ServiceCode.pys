@@ -18,6 +18,15 @@ HLS_RESOLUTIONS = OrderedDict([("Source", 1080),
                                ("Medium", 480),
                                ("Low", 360),
                                ("Mobile", 226)])
+# map the old quality names to the newer ones
+HLS_RESOLUTIONS_NEW = {'Source': '1080p60',
+                       'High': '720p60',
+                       'High2': '720p30',
+                       'Medium': '540p30',
+                       'Medium2': '480p30',
+                       'Low': '360p30',
+                       'Low2': '240p30',
+                       'Mobile': '144p30'}
 
 
 def NormalizeURL(url):
@@ -71,20 +80,6 @@ def MetadataObjectForURL(url):
 def MediaObjectsForURL(url):
     quality_option = (Prefs['stream_quality_selection'] if is_stream(url) else
                       Prefs['vod_quality_selection'])
-    if is_vod(url) and get_vod_type(url) not in ACCEPTED_VOD_TYPES:
-        Log.Error('TWITCH: this type of vod is not supported.')
-        raise Ex.MediaNotAvailable
-
-    # Plex web clients cross domain issue... taken from iplayer
-    Log.Info('TWITCH: Product/Platform: {} - {}'.format(Client.Product, Client.Platform))
-    if Client.Product in ['Plex Web'] and Client.Platform not in ['Safari']:
-        return [
-            MediaObject(
-                parts=[PartObject(key=HTTPLiveStreamURL(Callback(PlayWebClient, url=url, ext='m3u8')))],
-                audio_channels=2,
-                optimized_for_streaming=True
-            )
-        ]
 
     if quality_option == "Manual":
         return [
@@ -122,9 +117,7 @@ def MediaObjectsForURL(url):
                 audio_codec=AudioCodec.AAC,
                 audio_channels=2,
                 optimized_for_streaming=True,
-                parts=[PartObject(
-                    key=(HTTPLiveStreamURL(Callback(PlayWebClient, url=url, ext='m3u8')) if Prefs['proxy_playlist'] else
-                         Callback(PlayHLS, url=url, ext='m3u8')))]
+                parts=[PartObject(key=Callback(PlayHLS, url=url, ext='m3u8'))]
             )
         ]
 
@@ -138,7 +131,7 @@ def PlayHLS(url, quality=None, **kwargs):
     else:
         Log("TWITCH: Quality = " + quality)
         try:
-            playlist_contents = HTTP.Request(playlist_url, cacheTime=0).content
+            playlist_contents = HTTP.Request(playlist_url, cacheTime=0, headers={'Client-ID': TWITCH_CLIENT_ID}).content
         except Ex.HTTPError as e:
             Log.Error('TWITCH: PlayHLS: {} - {}'.format(e.code, e.reason))
             if e.code == 403:
@@ -150,14 +143,6 @@ def PlayHLS(url, quality=None, **kwargs):
 
     Log("TWITCH: Final Url = " + final_url)
     return IndirectResponse(VideoClipObject, key=HTTPLiveStreamURL(final_url))
-
-
-def PlayWebClient(url, **kwargs):
-    """works on chrome/firefox when accessing localhost:32400 but not 127.0.0.1:32400.
-    app.plex.tv also gets cross domain problem."""
-    url, access_token = shared.parse_service_url(url)
-    playlist_url = get_playlist(url, access_token)
-    return HTTP.Request(playlist_url, cacheTime=0).content
 
 
 ################################################################################
@@ -195,7 +180,7 @@ def is_stream(url):
 
 
 def is_vod(url):
-    return len(url.split('/')) == 6
+    return 'videos' in url
 
 
 def get_vod_type(url):
@@ -208,11 +193,10 @@ def parse_m3u(playlist):
     for i, line in enumerate(lines):
         if not line.startswith('#EXT-X-MEDIA'):
             continue
-        name_pos = line.find('NAME="')
+        name_pos = line.find('GROUP-ID="')
         if name_pos < 0:
             continue
-        name = line[name_pos + 6:].split('"')[0]
-        name = "Source" if name.endswith(" - source") else name
+        name = line[name_pos + 10:].split('"')[0]
         url = lines[i + 2] if i + 2 < len(lines) else None
         parsed[name] = url
     return parsed
@@ -221,12 +205,14 @@ def parse_m3u(playlist):
 def get_twitch_quality(playlist, quality):
     parsed = parse_m3u(playlist)
     Log("TWITCH: Playlists = " + repr(parsed))
-    if quality in parsed:
-        Log("TWITCH: Quality is available. url = " + parsed[quality])
-        return parsed[quality]
-    else:
-        available = {v: k for k, v in HLS_RESOLUTIONS.iteritems() if k in parsed}
-        best_match = available[min(available.keys(),
-                                   key=lambda x: abs(x - HLS_RESOLUTIONS[quality]))]
-        Log("TWITCH: Quality is not available. Best match = " + best_match)
-        return parsed[best_match]
+    if quality == 'Source':
+        Log.Debug("TWITCH: Returning source stream. 'chunked'")
+        return parsed['chunked']
+    elif quality.lower() in parsed:
+        Log.Debug("TWITCH: Old quality is available. '{}'".format(quality.lower()))
+        return parsed[quality.lower()]
+    elif HLS_RESOLUTIONS_NEW[quality] in parsed:
+        Log.Debug("TWITCH: New quality is available. {}".format(HLS_RESOLUTIONS_NEW[quality]))
+        return parsed[HLS_RESOLUTIONS_NEW[quality]]
+    Log.Debug("TWITCH: couldn't select a quality. using '{}'".format(parsed.keys()[0]))
+    return parsed[parsed.keys()[0]]
