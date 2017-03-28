@@ -6,12 +6,11 @@ STREAM_DATA = 'https://api.twitch.tv/kraken/streams/{channel_name}'
 STREAM_TOKEN = 'https://api.twitch.tv/api/channels/{id}/access_token'
 STREAM_URL = ('http://usher.twitch.tv/api/channel/hls/{id}.m3u8'
               '?token={token}&sig={sig}&allow_source=true')
-VOD_DATA = 'https://api.twitch.tv/kraken/videos/{vod_type}{vod_id}'
+VOD_DATA = 'https://api.twitch.tv/kraken/videos/{vod_id}'
 VOD_TOKEN = 'https://api.twitch.tv/api/vods/{id}/access_token'
 VOD_URL = ('http://usher.twitch.tv/vod/{id}'
            '?nauth={token}&nauthsig={sig}&allow_source=true')
 TWITCH_CLIENT_ID = 'r797t9e3qhgxayiisuqdxxkh5tj7mlz'
-ACCEPTED_VOD_TYPES = ["v"]
 # arbitrary resolution values so the client can distinguish them
 HLS_RESOLUTIONS = OrderedDict([("Source", 1080),
                                ("High", 720),
@@ -57,10 +56,8 @@ def MetadataObjectForURL(url):
         )
     elif is_vod(url):
         vod_id = get_id(url)
-        vod_type = get_vod_type(url)
         try:
-            video = JSON.ObjectFromURL(VOD_DATA.format(vod_type=vod_type, vod_id=vod_id),
-                                       cacheTime=0, headers={'Client-ID': TWITCH_CLIENT_ID})
+            video = JSON.ObjectFromURL(VOD_DATA.format(vod_id=vod_id), cacheTime=0, headers={'Client-ID': TWITCH_CLIENT_ID})
         except Exception as e:
             Log.Error('TWITCH: Unable to get vod metadata.\n' + str(e))
             raise Ex.MediaNotAvailable
@@ -104,8 +101,7 @@ def MediaObjectsForURL(url):
                 audio_channels=2,
                 optimized_for_streaming=True,
                 video_resolution=HLS_RESOLUTIONS[quality_option],
-                parts=[PartObject(key=Callback(PlayHLS, url=url,
-                                               quality=quality_option, ext='m3u8'))]
+                parts=[PartObject(key=Callback(PlayHLS, url=url, quality=quality_option, ext='m3u8'))]
             )
         ]
     else:  # automatic (let plex handle it)
@@ -181,10 +177,6 @@ def is_stream(url):
 
 def is_vod(url):
     return 'videos' in url
-
-
-def get_vod_type(url):
-    return url.split('/')[-2]
 
 
 def parse_m3u(playlist):
