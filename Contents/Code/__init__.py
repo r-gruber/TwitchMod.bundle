@@ -268,7 +268,7 @@ def FollowedChannelsList(apiurl=None, limit=100, **kwargs):
     return oc
 
 
-@route(PREFIX + '/channel/vods', broadcasts=bool, uploads=bool, limit=int)
+@route(PREFIX + '/channel/vods', broadcastType=String, limit=int)
 def ChannelVodsList(name=None, apiurl=None, broadcastType=BroadcastType.HIGHLIGHT, limit=PAGE_LIMIT, **kwargs):
     """Returns videoClipObjects for ``channel``. ignore vods that aren't v type."""
     oc = ObjectContainer(title2=L('title_'+broadcastType))
