@@ -216,11 +216,14 @@ def ChannelMenu(channel_name, stream=None, **kwargs):
     if stream is not None:
         oc.add(stream_vid(stream))  # Watch Live
     # Highlights
-    oc.add(DirectoryObject(key=Callback(ChannelVodsList, name=channel_name, broadcasts=False),
+    oc.add(DirectoryObject(key=Callback(ChannelVodsList, name=channel_name, broadcasts=False, uploads=False),
                            title=unicode(L('highlights')), thumb=ICONS['videos']))
     # Past Broadcasts
-    oc.add(DirectoryObject(key=Callback(ChannelVodsList, name=channel_name, broadcasts=True),
+    oc.add(DirectoryObject(key=Callback(ChannelVodsList, name=channel_name, broadcasts=True, uploads=False),
                            title=unicode(L('past_broadcasts')), thumb=ICONS['videos']))
+    # Uploads
+    oc.add(DirectoryObject(key=Callback(ChannelVodsList, name=channel_name, broadcasts=False, uploads=True),
+                           title=unicode(L('uploads')), thumb=ICONS['videos']))
     return oc
 
 
@@ -260,14 +263,24 @@ def FollowedChannelsList(apiurl=None, limit=100, **kwargs):
     return oc
 
 
-@route(PREFIX + '/channel/vods', broadcasts=bool, limit=int)
-def ChannelVodsList(name=None, apiurl=None, broadcasts=True, limit=PAGE_LIMIT, **kwargs):
+@route(PREFIX + '/channel/vods', broadcasts=bool, uploads=bool, limit=int)
+def ChannelVodsList(name=None, apiurl=None, broadcasts=True, uploads=False, limit=PAGE_LIMIT, **kwargs):
     """Returns videoClipObjects for ``channel``. ignore vods that aren't v type."""
-    oc = ObjectContainer(title2=L('past_broadcasts') if broadcasts else L('highlights'))
+    if broadcasts:
+        pageTitle = L('past_broadcasts')
+        broadcastType = 'archive'
+    elif uploads:
+        pageTitle = L('uploads')
+        broadcastType = 'upload'
+    else:
+        pageTitle = L('highlights')
+        broadcastType = 'highlight'
+
+    oc = ObjectContainer(title2=pageTitle)
     try:
         videos = (api_request(apiurl) if apiurl is not None else
                   api_request('/channels/{}/videos'.format(name),
-                              params={'limit': limit, 'broadcasts': str(broadcasts).lower()}))
+                              params={'limit': limit, 'broadcast_type': broadcastType}))
     except APIError:
         return error_message(oc.title2, "Error")
     ignored = 0
