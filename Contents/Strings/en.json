@@ -8,13 +8,11 @@
     "search": "Search",
     "search_prompt": "Search for",
     "browse_summary": "Browse Live Streams by Game",
-    "past_broadcasts": "Past Broadcasts",
     "more": "More...",
     "channels": "Channels",
     "streams": "Streams",
     "viewers": "Viewers",
     "watch_stream": "Watch Stream",
-    "highlights": "Highlights",
     "live": "LIVE",
     "offline": "OFFLINE",
     "followed_streams_list_error": "Error getting the list of followed streams.",
@@ -38,5 +36,7 @@
     "access_token": "Access Token (optional)",
     "authorize": "Authorize",
     "hide_offline": "Hide Offline Channels",
-    "uploads": "Uploads"
+    "title_archive": "Past Broadcasts",
+    "title_highlight": "Highlights",
+    "title_upload": "Uploads"
 }

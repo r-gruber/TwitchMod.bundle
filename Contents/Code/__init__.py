@@ -22,6 +22,11 @@ ICONS = {'search':    R('ic_search_c.png'),
          'authorize': R('ic_settings_c.png')}
 
 
+class BroadcastType:
+    ARCHIVE = 'archive'
+    UPLOAD = 'upload'
+    HIGHLIGHT = 'highlight'
+
 def Start():
     ObjectContainer.title1 = NAME
     ObjectContainer.art = R(ART)
@@ -216,14 +221,14 @@ def ChannelMenu(channel_name, stream=None, **kwargs):
     if stream is not None:
         oc.add(stream_vid(stream))  # Watch Live
     # Highlights
-    oc.add(DirectoryObject(key=Callback(ChannelVodsList, name=channel_name, broadcasts=False, uploads=False),
-                           title=unicode(L('highlights')), thumb=ICONS['videos']))
+    oc.add(DirectoryObject(key=Callback(ChannelVodsList, name=channel_name, broadcastType=BroadcastType.HIGHLIGHT),
+                           title=unicode(L('title_highlight')), thumb=ICONS['videos']))
     # Past Broadcasts
-    oc.add(DirectoryObject(key=Callback(ChannelVodsList, name=channel_name, broadcasts=True, uploads=False),
-                           title=unicode(L('past_broadcasts')), thumb=ICONS['videos']))
+    oc.add(DirectoryObject(key=Callback(ChannelVodsList, name=channel_name, broadcastType=BroadcastType.ARCHIVE),
+                           title=unicode(L('title_archive')), thumb=ICONS['videos']))
     # Uploads
-    oc.add(DirectoryObject(key=Callback(ChannelVodsList, name=channel_name, broadcasts=False, uploads=True),
-                           title=unicode(L('uploads')), thumb=ICONS['videos']))
+    oc.add(DirectoryObject(key=Callback(ChannelVodsList, name=channel_name, broadcastType=BroadcastType.UPLOAD),
+                           title=unicode(L('title_upload')), thumb=ICONS['videos']))
     return oc
 
 
@@ -263,20 +268,10 @@ def FollowedChannelsList(apiurl=None, limit=100, **kwargs):
     return oc
 
 
-@route(PREFIX + '/channel/vods', broadcasts=bool, uploads=bool, limit=int)
-def ChannelVodsList(name=None, apiurl=None, broadcasts=True, uploads=False, limit=PAGE_LIMIT, **kwargs):
+@route(PREFIX + '/channel/vods', broadcastType=String, limit=int)
+def ChannelVodsList(name=None, apiurl=None, broadcastType=BroadcastType.HIGHLIGHT, limit=PAGE_LIMIT, **kwargs):
     """Returns videoClipObjects for ``channel``. ignore vods that aren't v type."""
-    if broadcasts:
-        pageTitle = L('past_broadcasts')
-        broadcastType = 'archive'
-    elif uploads:
-        pageTitle = L('uploads')
-        broadcastType = 'upload'
-    else:
-        pageTitle = L('highlights')
-        broadcastType = 'highlight'
-
-    oc = ObjectContainer(title2=pageTitle)
+    oc = ObjectContainer(title2=L('title_'+broadcastType))
     try:
         videos = (api_request(apiurl) if apiurl is not None else
                   api_request('/channels/{}/videos'.format(name),
@@ -299,7 +294,7 @@ def ChannelVodsList(name=None, apiurl=None, broadcasts=True, uploads=False, limi
                                                                         fallback=ICONS['videos'])))
     if len(oc) + ignored >= limit:
         oc.add(NextPageObject(key=Callback(ChannelVodsList, apiurl=videos['_links']['next'],
-                                           broadcasts=broadcasts, limit=limit),
+                                           broadcastType=broadcastType, limit=limit),
                               title=unicode(L('more')), thumb=ICONS['more']))
     return oc
 
